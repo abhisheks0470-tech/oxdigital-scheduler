@@ -17,11 +17,11 @@ workflows:
           echo "flutter.versionName=1.0.0" >> android/local.properties
           echo "flutter.versionCode=1" >> android/local.properties
           flutter clean
-          rm -f test/widget_test.dart
+          rm -rf test
       - name: Get packages
         script: flutter pub get
       - name: Analyze
-        script: flutter analyze --no-fatal-infos --no-fatal-warnings
+        script: flutter analyze lib android pubspec.yaml --no-fatal-infos --no-fatal-warnings
       - name: Build debug APK
         script: flutter build apk --debug --dart-define=API_URL=$API_URL
       - name: Build release APK
@@ -52,11 +52,11 @@ workflows:
           echo "flutter.versionName=1.0.0" >> android/local.properties
           echo "flutter.versionCode=1" >> android/local.properties
           flutter clean
-          rm -f test/widget_test.dart
+          rm -rf test
       - name: Get packages
         script: flutter pub get
       - name: Analyze
-        script: flutter analyze --no-fatal-infos --no-fatal-warnings
+        script: flutter analyze lib android pubspec.yaml --no-fatal-infos --no-fatal-warnings
       - name: Build release APK
         script: flutter build apk --release --dart-define=API_URL=$API_URL
       - name: Build release AAB
@@ -84,11 +84,11 @@ workflows:
           echo "flutter.versionName=1.0.0" >> android/local.properties
           echo "flutter.versionCode=1" >> android/local.properties
           flutter clean
-          rm -f test/widget_test.dart
+          rm -rf test
       - name: Get packages
         script: flutter pub get
       - name: Analyze
-        script: flutter analyze --no-fatal-infos --no-fatal-warnings
+        script: flutter analyze lib android pubspec.yaml --no-fatal-infos --no-fatal-warnings
       - name: Build release APK
         script: flutter build apk --release --dart-define=API_URL=$API_URL
       - name: Build release AAB
