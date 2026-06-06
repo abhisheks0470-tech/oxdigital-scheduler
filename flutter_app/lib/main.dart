@@ -8,6 +8,10 @@ const apiUrl = String.fromEnvironment('API_URL', defaultValue: 'http://localhost
 
 void main() => runApp(const OxDigitalApp());
 
+class MyApp extends OxDigitalApp {
+  const MyApp({super.key});
+}
+
 class OxDigitalApp extends StatefulWidget {
   const OxDigitalApp({super.key});
   @override
