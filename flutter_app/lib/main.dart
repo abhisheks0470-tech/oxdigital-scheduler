@@ -358,7 +358,7 @@ class _BookingScreenState extends State<BookingScreen> {
   List<Widget> customerForm() => [
     section('Customer Details'),
     for (final e in form.entries) Padding(padding: const EdgeInsets.only(bottom: 10), child: TextField(controller: e.value, decoration: crmInput(labelFor(e.key)))),
-    DropdownButtonFormField<String>(value: service, decoration: crmInput('Interested Service'), items: services.map((s) => DropdownMenuItem<String>(value: s, child: Text(s))).toList(), onChanged: (v) => service = v!),
+    DropdownButtonFormField<String>(initialValue: service, decoration: crmInput('Interested Service'), items: services.map((s) => DropdownMenuItem<String>(value: s, child: Text(s))).toList(), onChanged: (v) => service = v!),
     const SizedBox(height: 18),
     FilledButton(style: greenButton(), onPressed: save, child: const Text('Schedule Meeting')),
   ];
@@ -432,7 +432,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
   Widget build(BuildContext context) => AlertDialog(
     title: const Text('Update Meeting'),
     content: SizedBox(width: 360, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-      DropdownButtonFormField<String>(value: status, decoration: crmInput('Select Status'), items: const ['Sale Done','Follow-up Required','Not Interested','Client Not Available','Wrong Lead','Meeting Cancelled','Need Revisit'].map((s) => DropdownMenuItem<String>(value: s, child: Text(s))).toList(), onChanged: (v) => setState(() => status = v!)),
+      DropdownButtonFormField<String>(initialValue: status, decoration: crmInput('Select Status'), items: const ['Sale Done','Follow-up Required','Not Interested','Client Not Available','Wrong Lead','Meeting Cancelled','Need Revisit'].map((s) => DropdownMenuItem<String>(value: s, child: Text(s))).toList(), onChanged: (v) => setState(() => status = v!)),
       const SizedBox(height: 10),
       for (final key in visibleKeys(status)) Padding(padding: const EdgeInsets.only(bottom: 10), child: TextField(controller: fields[key], decoration: crmInput(labelFor(key)))),
     ]))),
