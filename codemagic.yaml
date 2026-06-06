@@ -32,6 +32,9 @@ workflows:
           perl -0pi -e 's/\n\s*id "org\.jetbrains\.kotlin\.android" version "[^"]*" apply false//g' android/settings.gradle
           perl -0pi -e 's/\n\s*id "kotlin-android"//g' android/app/build.gradle
           perl -0pi -e 's/\n\s*kotlinOptions\s*\{[^{}]*\}//g' android/app/build.gradle
+          if ! grep -q "buildTypes" android/app/build.gradle; then
+            perl -0pi -e 's/(\n\s*defaultConfig\s*\{[^{}]*\n\s*\})/$1\n\n    buildTypes {\n        debug {\n            signingConfig signingConfigs.debug\n        }\n        release {\n            signingConfig signingConfigs.debug\n            minifyEnabled false\n            shrinkResources false\n        }\n    }/s' android/app/build.gradle
+          fi
           printf 'org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=2G -XX:+HeapDumpOnOutOfMemoryError\nandroid.useAndroidX=true\nandroid.enableJetifier=true\nandroid.newDsl=false\n' > android/gradle.properties
           echo "----- android/settings.gradle -----"
           cat android/settings.gradle
@@ -95,6 +98,9 @@ workflows:
           perl -0pi -e 's/\n\s*id "org\.jetbrains\.kotlin\.android" version "[^"]*" apply false//g' android/settings.gradle
           perl -0pi -e 's/\n\s*id "kotlin-android"//g' android/app/build.gradle
           perl -0pi -e 's/\n\s*kotlinOptions\s*\{[^{}]*\}//g' android/app/build.gradle
+          if ! grep -q "buildTypes" android/app/build.gradle; then
+            perl -0pi -e 's/(\n\s*defaultConfig\s*\{[^{}]*\n\s*\})/$1\n\n    buildTypes {\n        debug {\n            signingConfig signingConfigs.debug\n        }\n        release {\n            signingConfig signingConfigs.debug\n            minifyEnabled false\n            shrinkResources false\n        }\n    }/s' android/app/build.gradle
+          fi
           printf 'org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=2G -XX:+HeapDumpOnOutOfMemoryError\nandroid.useAndroidX=true\nandroid.enableJetifier=true\nandroid.newDsl=false\n' > android/gradle.properties
           echo "----- android/settings.gradle -----"
           cat android/settings.gradle
@@ -153,6 +159,9 @@ workflows:
           perl -0pi -e 's/\n\s*id "org\.jetbrains\.kotlin\.android" version "[^"]*" apply false//g' android/settings.gradle
           perl -0pi -e 's/\n\s*id "kotlin-android"//g' android/app/build.gradle
           perl -0pi -e 's/\n\s*kotlinOptions\s*\{[^{}]*\}//g' android/app/build.gradle
+          if ! grep -q "buildTypes" android/app/build.gradle; then
+            perl -0pi -e 's/(\n\s*defaultConfig\s*\{[^{}]*\n\s*\})/$1\n\n    buildTypes {\n        debug {\n            signingConfig signingConfigs.debug\n        }\n        release {\n            signingConfig signingConfigs.debug\n            minifyEnabled false\n            shrinkResources false\n        }\n    }/s' android/app/build.gradle
+          fi
           printf 'org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=2G -XX:+HeapDumpOnOutOfMemoryError\nandroid.useAndroidX=true\nandroid.enableJetifier=true\nandroid.newDsl=false\n' > android/gradle.properties
           echo "----- android/settings.gradle -----"
           cat android/settings.gradle

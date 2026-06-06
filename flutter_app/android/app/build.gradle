@@ -38,6 +38,19 @@ android {
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
     }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+        release {
+            // Test-installable release APK for Codemagic artifacts.
+            // Replace with a real release keystore before Play Store upload.
+            signingConfig signingConfigs.debug
+            minifyEnabled false
+            shrinkResources false
+        }
+    }
 }
 
 flutter {
