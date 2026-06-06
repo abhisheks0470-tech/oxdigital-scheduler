@@ -1,0 +1,11 @@
+{
+  "name": "oxdigital-meeting-scheduler-api",
+  "version": "1.0.0",
+  "description": "Local API for OxDigital Meeting Scheduler CRM",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js"
+  },
+  "license": "UNLICENSED"
+}

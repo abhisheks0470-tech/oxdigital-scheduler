@@ -1,0 +1,279 @@
+{
+  "users": [
+    {
+      "id": "usr_admin",
+      "name": "Abhishek Sir",
+      "mobile": "9000000001",
+      "email": "admin@oxdigital.in",
+      "passwordHash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+      "role": "admin",
+      "status": "active",
+      "avatar": "AS"
+    },
+    {
+      "id": "usr_telecaller",
+      "name": "Priya Sharma",
+      "mobile": "9000000002",
+      "email": "telecaller@oxdigital.in",
+      "passwordHash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+      "role": "telecaller",
+      "status": "active",
+      "avatar": "PS"
+    },
+    {
+      "id": "usr_telecaller2",
+      "name": "Neha Jain",
+      "mobile": "9000000005",
+      "email": "neha@oxdigital.in",
+      "passwordHash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+      "role": "telecaller",
+      "status": "active",
+      "avatar": "NJ"
+    },
+    {
+      "id": "usr_salesman",
+      "name": "Rahul Kumar",
+      "mobile": "9000000003",
+      "email": "salesman@oxdigital.in",
+      "passwordHash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+      "role": "salesman",
+      "status": "active",
+      "avatar": "RK",
+      "currentLocation": {
+        "lat": 22.7196,
+        "lng": 75.8577,
+        "label": "Vijay Nagar, Indore",
+        "updatedAt": "2026-06-06T12:19:52.535Z"
+      }
+    },
+    {
+      "id": "usr_salesman2",
+      "name": "Vikram Singh",
+      "mobile": "9000000004",
+      "email": "vikram@oxdigital.in",
+      "passwordHash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+      "role": "salesman",
+      "status": "active",
+      "avatar": "VS",
+      "currentLocation": {
+        "lat": 22.7533,
+        "lng": 75.8937,
+        "label": "Palasia, Indore",
+        "updatedAt": "2026-06-06T12:19:52.571Z"
+      }
+    },
+    {
+      "id": "usr_salesman3",
+      "name": "Sandeep Yadav",
+      "mobile": "9000000006",
+      "email": "sandeep@oxdigital.in",
+      "passwordHash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+      "role": "salesman",
+      "status": "active",
+      "avatar": "SY",
+      "currentLocation": {
+        "lat": 22.7075,
+        "lng": 75.8408,
+        "label": "MG Road, Indore",
+        "updatedAt": "2026-06-06T12:19:52.571Z"
+      }
+    }
+  ],
+  "meetings": [
+    {
+      "id": "mtg_amit",
+      "customerName": "Amit Enterprises",
+      "mobile": "9876543210",
+      "whatsapp": "9876543210",
+      "businessName": "Amit Enterprises",
+      "businessCategory": "PPC Services",
+      "address": "123, MG Road, Indore, MP",
+      "mapLocation": "22.7196,75.8577",
+      "interestedService": "Google Ads",
+      "expectedBudget": 25000,
+      "notes": "Interested in premium lead generation.",
+      "meetingAt": "2026-06-06T04:30:00.000Z",
+      "blockedStart": "2026-06-06T03:30:00.000Z",
+      "blockedEnd": "2026-06-06T05:30:00.000Z",
+      "telecallerId": "usr_telecaller",
+      "salesmanId": "usr_salesman",
+      "status": "upcoming",
+      "result": null,
+      "createdAt": "2026-06-06T12:19:52.571Z",
+      "updatedAt": "2026-06-06T12:19:52.571Z"
+    },
+    {
+      "id": "mtg_neha",
+      "customerName": "Neha Store",
+      "mobile": "9876500011",
+      "whatsapp": "9876500011",
+      "businessName": "Neha Store",
+      "businessCategory": "Retail",
+      "address": "56 Sapna Sangeeta Road, Indore",
+      "mapLocation": "22.7243,75.8839",
+      "interestedService": "Social Media Management",
+      "expectedBudget": 15000,
+      "notes": "Wants Instagram growth.",
+      "meetingAt": "2026-06-06T06:30:00.000Z",
+      "blockedStart": "2026-06-06T05:30:00.000Z",
+      "blockedEnd": "2026-06-06T07:30:00.000Z",
+      "telecallerId": "usr_telecaller",
+      "salesmanId": "usr_salesman2",
+      "status": "upcoming",
+      "result": null,
+      "createdAt": "2026-06-06T12:19:52.571Z",
+      "updatedAt": "2026-06-06T12:19:52.571Z"
+    },
+    {
+      "id": "mtg_shree",
+      "customerName": "Shree Traders",
+      "mobile": "9876500022",
+      "whatsapp": "9876500022",
+      "businessName": "Shree Traders",
+      "businessCategory": "Distribution",
+      "address": "Rau, Indore",
+      "mapLocation": "22.6348,75.8116",
+      "interestedService": "Website Development",
+      "expectedBudget": 35000,
+      "notes": "Catalog website required.",
+      "meetingAt": "2026-06-06T09:30:00.000Z",
+      "blockedStart": "2026-06-06T08:30:00.000Z",
+      "blockedEnd": "2026-06-06T10:30:00.000Z",
+      "telecallerId": "usr_telecaller",
+      "salesmanId": "usr_salesman3",
+      "status": "upcoming",
+      "result": null,
+      "createdAt": "2026-06-06T12:19:52.571Z",
+      "updatedAt": "2026-06-06T12:19:52.571Z"
+    },
+    {
+      "id": "mtg_khandelwal",
+      "customerName": "Khandelwal Infotech",
+      "mobile": "9876500033",
+      "whatsapp": "9876500033",
+      "businessName": "Khandelwal Infotech",
+      "businessCategory": "IT Services",
+      "address": "AB Road, Indore",
+      "mapLocation": "22.745,75.892",
+      "interestedService": "Complete Digital Marketing",
+      "expectedBudget": 75000,
+      "notes": "Full funnel campaign.",
+      "meetingAt": "2026-06-06T10:30:00.000Z",
+      "blockedStart": "2026-06-06T09:30:00.000Z",
+      "blockedEnd": "2026-06-06T11:30:00.000Z",
+      "telecallerId": "usr_telecaller2",
+      "salesmanId": "usr_salesman",
+      "status": "follow-up",
+      "result": {
+        "followUpDate": "2026-06-07T05:30:00.000Z",
+        "reason": "Partner approval pending",
+        "expectedClosingAmount": 65000,
+        "notes": "Call owner tomorrow."
+      },
+      "createdAt": "2026-06-06T12:19:52.571Z",
+      "updatedAt": "2026-06-06T12:19:52.571Z"
+    },
+    {
+      "id": "mtg_completed",
+      "customerName": "Orbit Classes",
+      "mobile": "9876500044",
+      "whatsapp": "9876500044",
+      "businessName": "Orbit Classes",
+      "businessCategory": "Education",
+      "address": "Bhawarkua, Indore",
+      "mapLocation": "22.692,75.868",
+      "interestedService": "Facebook/Instagram Ads",
+      "expectedBudget": 18000,
+      "notes": "Trial campaign.",
+      "meetingAt": "2026-06-05T05:30:00.000Z",
+      "blockedStart": "2026-06-05T04:30:00.000Z",
+      "blockedEnd": "2026-06-05T06:30:00.000Z",
+      "telecallerId": "usr_telecaller",
+      "salesmanId": "usr_salesman",
+      "status": "sale-done",
+      "result": {
+        "packageName": "Starter Growth",
+        "serviceSold": "Facebook/Instagram Ads",
+        "totalAmount": 25000,
+        "receivedAmount": 15000,
+        "pendingAmount": 10000,
+        "paymentMode": "UPI",
+        "upiTransactionId": "UPI1234567890",
+        "onboardingNotes": "Creative brief received."
+      },
+      "createdAt": "2026-06-06T12:19:52.571Z",
+      "updatedAt": "2026-06-06T12:19:52.571Z"
+    },
+    {
+      "id": "mtg_79b4eaed6710",
+      "customerName": "Amit Enterprises",
+      "mobile": "9876543210",
+      "whatsapp": "9876543210",
+      "businessName": "Amit Enterprises",
+      "businessCategory": "Digital Marketing",
+      "address": "123, MG Road, Indore, MP",
+      "mapLocation": "22.7196,75.8577",
+      "interestedService": "Social Media Management",
+      "expectedBudget": 25000,
+      "notes": "Interested in premium digital marketing package.",
+      "meetingAt": "2026-06-17T06:30:00.000Z",
+      "blockedStart": "2026-06-17T05:30:00.000Z",
+      "blockedEnd": "2026-06-17T07:30:00.000Z",
+      "telecallerId": "usr_telecaller",
+      "salesmanId": "usr_salesman",
+      "status": "upcoming",
+      "result": null,
+      "createdAt": "2026-06-06T12:24:27.857Z",
+      "updatedAt": "2026-06-06T12:24:27.857Z"
+    }
+  ],
+  "notifications": [
+    {
+      "id": "ntf_80c808995c82",
+      "userId": "usr_salesman",
+      "title": "New meeting assigned",
+      "body": "Amit Enterprises at 10:00 AM",
+      "read": false,
+      "createdAt": "2026-06-06T12:19:52.574Z"
+    },
+    {
+      "id": "ntf_a130dc5c760a",
+      "userId": "usr_admin",
+      "title": "Sale done alert",
+      "body": "Orbit Classes closed for Rs. 25,000",
+      "read": false,
+      "createdAt": "2026-06-06T12:19:52.574Z"
+    },
+    {
+      "id": "ntf_bbb8de886629",
+      "userId": "usr_salesman",
+      "title": "New meeting assigned",
+      "body": "Amit Enterprises at 6/17/2026, 12:00:00 PM",
+      "read": false,
+      "createdAt": "2026-06-06T12:24:28.078Z"
+    }
+  ],
+  "settings": {
+    "companyName": "OxDigital",
+    "workingHours": {
+      "start": "09:00",
+      "end": "19:00"
+    },
+    "meetingBufferMinutes": 60,
+    "services": [
+      "Google Ads",
+      "Facebook/Instagram Ads",
+      "Website Development",
+      "Social Media Management",
+      "Google Business Profile",
+      "Complete Digital Marketing"
+    ],
+    "paymentModes": [
+      "Cash",
+      "UPI",
+      "Cheque",
+      "Bank Transfer"
+    ],
+    "brandingLogo": "/assets/oxdigital-logo.svg"
+  }
+}
