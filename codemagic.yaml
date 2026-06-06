@@ -14,27 +14,30 @@ workflows:
           set -e
           rm -rf test
           rm -f android/settings.gradle.kts android/build.gradle.kts android/app/build.gradle.kts
-          rm -rf android/app/src/main/kotlin/in
-          mkdir -p android/app/src/main/kotlin/com/oxdigital/scheduler
-          cat > android/app/src/main/kotlin/com/oxdigital/scheduler/MainActivity.kt <<'EOF'
-          package com.oxdigital.scheduler
+          rm -rf android/app/src/main/kotlin
+          mkdir -p android/app/src/main/java/com/oxdigital/scheduler
+          cat > android/app/src/main/java/com/oxdigital/scheduler/MainActivity.java <<'EOF'
+          package com.oxdigital.scheduler;
 
-          import io.flutter.embedding.android.FlutterActivity
+          import io.flutter.embedding.android.FlutterActivity;
 
-          class MainActivity : FlutterActivity()
+          public class MainActivity extends FlutterActivity {
+          }
           EOF
           FLUTTER_SDK="${FLUTTER_ROOT:-$(dirname "$(dirname "$(which flutter)")")}"
           echo "flutter.sdk=$FLUTTER_SDK" > android/local.properties
           echo "flutter.versionName=1.0.0" >> android/local.properties
           echo "flutter.versionCode=1" >> android/local.properties
           perl -0pi -e 's/id "com\.android\.application" version "[^"]*"/id "com.android.application" version "8.6.0"/g' android/settings.gradle
-          perl -0pi -e 's/id "org\.jetbrains\.kotlin\.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "2.0.20"/g' android/settings.gradle
+          perl -0pi -e 's/\n\s*id "org\.jetbrains\.kotlin\.android" version "[^"]*" apply false//g' android/settings.gradle
+          perl -0pi -e 's/\n\s*id "kotlin-android"//g' android/app/build.gradle
+          perl -0pi -e 's/\n\s*kotlinOptions\s*\{[^{}]*\}//g' android/app/build.gradle
           printf 'org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=2G -XX:+HeapDumpOnOutOfMemoryError\nandroid.useAndroidX=true\nandroid.enableJetifier=true\nandroid.newDsl=false\n' > android/gradle.properties
           echo "----- android/settings.gradle -----"
           cat android/settings.gradle
           echo "----- checking for unsupported files/versions -----"
           if find android -name '*.kts' | grep .; then echo "KTS Gradle files must not exist"; exit 1; fi
-          if find android/app/src/main/kotlin/in -type f 2>/dev/null | grep .; then echo "Invalid Kotlin package path still exists"; exit 1; fi
+          if find android/app/src/main/kotlin -type f 2>/dev/null | grep .; then echo "Kotlin source files must not exist"; exit 1; fi
           if grep -R "8.3.2" android; then echo "Old AGP 8.3.2 still exists"; exit 1; fi
           flutter clean
       - name: Get packages
@@ -42,11 +45,17 @@ workflows:
       - name: Analyze
         script: flutter analyze lib android pubspec.yaml --no-fatal-infos --no-fatal-warnings
       - name: Build debug APK
-        script: flutter build apk --debug --android-skip-build-dependency-validation --dart-define=API_URL=$API_URL
+        script: |
+          rm -rf android/app/src/main/kotlin
+          flutter build apk --debug --android-skip-build-dependency-validation --dart-define=API_URL=$API_URL
       - name: Build release APK
-        script: flutter build apk --release --android-skip-build-dependency-validation --dart-define=API_URL=$API_URL
+        script: |
+          rm -rf android/app/src/main/kotlin
+          flutter build apk --release --android-skip-build-dependency-validation --dart-define=API_URL=$API_URL
       - name: Build release AAB
-        script: flutter build appbundle --release --android-skip-build-dependency-validation --dart-define=API_URL=$API_URL
+        script: |
+          rm -rf android/app/src/main/kotlin
+          flutter build appbundle --release --android-skip-build-dependency-validation --dart-define=API_URL=$API_URL
     artifacts:
       - build/app/outputs/flutter-apk/app-debug.apk
       - build/app/outputs/flutter-apk/app-release.apk
@@ -68,27 +77,30 @@ workflows:
           set -e
           rm -rf test
           rm -f android/settings.gradle.kts android/build.gradle.kts android/app/build.gradle.kts
-          rm -rf android/app/src/main/kotlin/in
-          mkdir -p android/app/src/main/kotlin/com/oxdigital/scheduler
-          cat > android/app/src/main/kotlin/com/oxdigital/scheduler/MainActivity.kt <<'EOF'
-          package com.oxdigital.scheduler
+          rm -rf android/app/src/main/kotlin
+          mkdir -p android/app/src/main/java/com/oxdigital/scheduler
+          cat > android/app/src/main/java/com/oxdigital/scheduler/MainActivity.java <<'EOF'
+          package com.oxdigital.scheduler;
 
-          import io.flutter.embedding.android.FlutterActivity
+          import io.flutter.embedding.android.FlutterActivity;
 
-          class MainActivity : FlutterActivity()
+          public class MainActivity extends FlutterActivity {
+          }
           EOF
           FLUTTER_SDK="${FLUTTER_ROOT:-$(dirname "$(dirname "$(which flutter)")")}"
           echo "flutter.sdk=$FLUTTER_SDK" > android/local.properties
           echo "flutter.versionName=1.0.0" >> android/local.properties
           echo "flutter.versionCode=1" >> android/local.properties
           perl -0pi -e 's/id "com\.android\.application" version "[^"]*"/id "com.android.application" version "8.6.0"/g' android/settings.gradle
-          perl -0pi -e 's/id "org\.jetbrains\.kotlin\.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "2.0.20"/g' android/settings.gradle
+          perl -0pi -e 's/\n\s*id "org\.jetbrains\.kotlin\.android" version "[^"]*" apply false//g' android/settings.gradle
+          perl -0pi -e 's/\n\s*id "kotlin-android"//g' android/app/build.gradle
+          perl -0pi -e 's/\n\s*kotlinOptions\s*\{[^{}]*\}//g' android/app/build.gradle
           printf 'org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=2G -XX:+HeapDumpOnOutOfMemoryError\nandroid.useAndroidX=true\nandroid.enableJetifier=true\nandroid.newDsl=false\n' > android/gradle.properties
           echo "----- android/settings.gradle -----"
           cat android/settings.gradle
           echo "----- checking for unsupported files/versions -----"
           if find android -name '*.kts' | grep .; then echo "KTS Gradle files must not exist"; exit 1; fi
-          if find android/app/src/main/kotlin/in -type f 2>/dev/null | grep .; then echo "Invalid Kotlin package path still exists"; exit 1; fi
+          if find android/app/src/main/kotlin -type f 2>/dev/null | grep .; then echo "Kotlin source files must not exist"; exit 1; fi
           if grep -R "8.3.2" android; then echo "Old AGP 8.3.2 still exists"; exit 1; fi
           flutter clean
       - name: Get packages
@@ -96,9 +108,13 @@ workflows:
       - name: Analyze
         script: flutter analyze lib android pubspec.yaml --no-fatal-infos --no-fatal-warnings
       - name: Build release APK
-        script: flutter build apk --release --android-skip-build-dependency-validation --dart-define=API_URL=$API_URL
+        script: |
+          rm -rf android/app/src/main/kotlin
+          flutter build apk --release --android-skip-build-dependency-validation --dart-define=API_URL=$API_URL
       - name: Build release AAB
-        script: flutter build appbundle --release --android-skip-build-dependency-validation --dart-define=API_URL=$API_URL
+        script: |
+          rm -rf android/app/src/main/kotlin
+          flutter build appbundle --release --android-skip-build-dependency-validation --dart-define=API_URL=$API_URL
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
       - build/app/outputs/bundle/release/app-release.aab
@@ -119,27 +135,30 @@ workflows:
           set -e
           rm -rf test
           rm -f android/settings.gradle.kts android/build.gradle.kts android/app/build.gradle.kts
-          rm -rf android/app/src/main/kotlin/in
-          mkdir -p android/app/src/main/kotlin/com/oxdigital/scheduler
-          cat > android/app/src/main/kotlin/com/oxdigital/scheduler/MainActivity.kt <<'EOF'
-          package com.oxdigital.scheduler
+          rm -rf android/app/src/main/kotlin
+          mkdir -p android/app/src/main/java/com/oxdigital/scheduler
+          cat > android/app/src/main/java/com/oxdigital/scheduler/MainActivity.java <<'EOF'
+          package com.oxdigital.scheduler;
 
-          import io.flutter.embedding.android.FlutterActivity
+          import io.flutter.embedding.android.FlutterActivity;
 
-          class MainActivity : FlutterActivity()
+          public class MainActivity extends FlutterActivity {
+          }
           EOF
           FLUTTER_SDK="${FLUTTER_ROOT:-$(dirname "$(dirname "$(which flutter)")")}"
           echo "flutter.sdk=$FLUTTER_SDK" > android/local.properties
           echo "flutter.versionName=1.0.0" >> android/local.properties
           echo "flutter.versionCode=1" >> android/local.properties
           perl -0pi -e 's/id "com\.android\.application" version "[^"]*"/id "com.android.application" version "8.6.0"/g' android/settings.gradle
-          perl -0pi -e 's/id "org\.jetbrains\.kotlin\.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "2.0.20"/g' android/settings.gradle
+          perl -0pi -e 's/\n\s*id "org\.jetbrains\.kotlin\.android" version "[^"]*" apply false//g' android/settings.gradle
+          perl -0pi -e 's/\n\s*id "kotlin-android"//g' android/app/build.gradle
+          perl -0pi -e 's/\n\s*kotlinOptions\s*\{[^{}]*\}//g' android/app/build.gradle
           printf 'org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=2G -XX:+HeapDumpOnOutOfMemoryError\nandroid.useAndroidX=true\nandroid.enableJetifier=true\nandroid.newDsl=false\n' > android/gradle.properties
           echo "----- android/settings.gradle -----"
           cat android/settings.gradle
           echo "----- checking for unsupported files/versions -----"
           if find android -name '*.kts' | grep .; then echo "KTS Gradle files must not exist"; exit 1; fi
-          if find android/app/src/main/kotlin/in -type f 2>/dev/null | grep .; then echo "Invalid Kotlin package path still exists"; exit 1; fi
+          if find android/app/src/main/kotlin -type f 2>/dev/null | grep .; then echo "Kotlin source files must not exist"; exit 1; fi
           if grep -R "8.3.2" android; then echo "Old AGP 8.3.2 still exists"; exit 1; fi
           flutter clean
       - name: Get packages
@@ -147,9 +166,13 @@ workflows:
       - name: Analyze
         script: flutter analyze lib android pubspec.yaml --no-fatal-infos --no-fatal-warnings
       - name: Build release APK
-        script: flutter build apk --release --android-skip-build-dependency-validation --dart-define=API_URL=$API_URL
+        script: |
+          rm -rf android/app/src/main/kotlin
+          flutter build apk --release --android-skip-build-dependency-validation --dart-define=API_URL=$API_URL
       - name: Build release AAB
-        script: flutter build appbundle --release --android-skip-build-dependency-validation --dart-define=API_URL=$API_URL
+        script: |
+          rm -rf android/app/src/main/kotlin
+          flutter build appbundle --release --android-skip-build-dependency-validation --dart-define=API_URL=$API_URL
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
       - build/app/outputs/bundle/release/app-release.aab
