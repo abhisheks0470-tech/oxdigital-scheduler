@@ -1,26 +1,6 @@
 workflows:
-  flutter-android-debug:
-    name: OxDigital Android Debug APK
-    max_build_duration: 60
-    instance_type: mac_mini_m2
-    working_directory: flutter_app
-    environment:
-      flutter: stable
-      vars:
-        API_URL: "http://10.0.2.2:4100"
-    scripts:
-      - name: Get Flutter packages
-        script: flutter pub get
-      - name: Analyze Flutter project
-        script: flutter analyze
-      - name: Build debug APK
-        script: flutter build apk --debug --dart-define=API_URL=$API_URL
-    artifacts:
-      - build/app/outputs/flutter-apk/app-debug.apk
-      - build/app/outputs/logs/*.log
-
-  flutter-android-release:
-    name: OxDigital Android Release APK
+  flutter-android-apk-aab:
+    name: OxDigital Android APK and AAB
     max_build_duration: 60
     instance_type: mac_mini_m2
     working_directory: flutter_app
@@ -29,12 +9,22 @@ workflows:
       vars:
         API_URL: "https://your-api-domain.com"
     scripts:
+      - name: Ensure Flutter Android scaffold
+        script: |
+          flutter create --platforms=android --project-name oxdigital_meeting_scheduler --org in.oxdigital .
+          FLUTTER_SDK="${FLUTTER_ROOT:-$(dirname "$(dirname "$(which flutter)")")}"
+          echo "flutter.sdk=$FLUTTER_SDK" > android/local.properties
+          echo "flutter.versionName=1.0.0" >> android/local.properties
+          echo "flutter.versionCode=1" >> android/local.properties
       - name: Get Flutter packages
         script: flutter pub get
       - name: Analyze Flutter project
         script: flutter analyze
       - name: Build release APK
         script: flutter build apk --release --dart-define=API_URL=$API_URL
+      - name: Build release App Bundle
+        script: flutter build appbundle --release --dart-define=API_URL=$API_URL
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
+      - build/app/outputs/bundle/release/app-release.aab
       - build/app/outputs/logs/*.log
