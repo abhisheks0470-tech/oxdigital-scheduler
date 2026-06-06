@@ -14,6 +14,15 @@ workflows:
           set -e
           rm -rf test
           rm -f android/settings.gradle.kts android/build.gradle.kts android/app/build.gradle.kts
+          rm -rf android/app/src/main/kotlin/in
+          mkdir -p android/app/src/main/kotlin/com/oxdigital/scheduler
+          cat > android/app/src/main/kotlin/com/oxdigital/scheduler/MainActivity.kt <<'EOF'
+          package com.oxdigital.scheduler
+
+          import io.flutter.embedding.android.FlutterActivity
+
+          class MainActivity : FlutterActivity()
+          EOF
           FLUTTER_SDK="${FLUTTER_ROOT:-$(dirname "$(dirname "$(which flutter)")")}"
           echo "flutter.sdk=$FLUTTER_SDK" > android/local.properties
           echo "flutter.versionName=1.0.0" >> android/local.properties
@@ -25,6 +34,7 @@ workflows:
           cat android/settings.gradle
           echo "----- checking for unsupported files/versions -----"
           if find android -name '*.kts' | grep .; then echo "KTS Gradle files must not exist"; exit 1; fi
+          if find android/app/src/main/kotlin/in -type f 2>/dev/null | grep .; then echo "Invalid Kotlin package path still exists"; exit 1; fi
           if grep -R "8.3.2" android; then echo "Old AGP 8.3.2 still exists"; exit 1; fi
           flutter clean
       - name: Get packages
@@ -58,6 +68,15 @@ workflows:
           set -e
           rm -rf test
           rm -f android/settings.gradle.kts android/build.gradle.kts android/app/build.gradle.kts
+          rm -rf android/app/src/main/kotlin/in
+          mkdir -p android/app/src/main/kotlin/com/oxdigital/scheduler
+          cat > android/app/src/main/kotlin/com/oxdigital/scheduler/MainActivity.kt <<'EOF'
+          package com.oxdigital.scheduler
+
+          import io.flutter.embedding.android.FlutterActivity
+
+          class MainActivity : FlutterActivity()
+          EOF
           FLUTTER_SDK="${FLUTTER_ROOT:-$(dirname "$(dirname "$(which flutter)")")}"
           echo "flutter.sdk=$FLUTTER_SDK" > android/local.properties
           echo "flutter.versionName=1.0.0" >> android/local.properties
@@ -69,6 +88,7 @@ workflows:
           cat android/settings.gradle
           echo "----- checking for unsupported files/versions -----"
           if find android -name '*.kts' | grep .; then echo "KTS Gradle files must not exist"; exit 1; fi
+          if find android/app/src/main/kotlin/in -type f 2>/dev/null | grep .; then echo "Invalid Kotlin package path still exists"; exit 1; fi
           if grep -R "8.3.2" android; then echo "Old AGP 8.3.2 still exists"; exit 1; fi
           flutter clean
       - name: Get packages
@@ -99,6 +119,15 @@ workflows:
           set -e
           rm -rf test
           rm -f android/settings.gradle.kts android/build.gradle.kts android/app/build.gradle.kts
+          rm -rf android/app/src/main/kotlin/in
+          mkdir -p android/app/src/main/kotlin/com/oxdigital/scheduler
+          cat > android/app/src/main/kotlin/com/oxdigital/scheduler/MainActivity.kt <<'EOF'
+          package com.oxdigital.scheduler
+
+          import io.flutter.embedding.android.FlutterActivity
+
+          class MainActivity : FlutterActivity()
+          EOF
           FLUTTER_SDK="${FLUTTER_ROOT:-$(dirname "$(dirname "$(which flutter)")")}"
           echo "flutter.sdk=$FLUTTER_SDK" > android/local.properties
           echo "flutter.versionName=1.0.0" >> android/local.properties
@@ -110,6 +139,7 @@ workflows:
           cat android/settings.gradle
           echo "----- checking for unsupported files/versions -----"
           if find android -name '*.kts' | grep .; then echo "KTS Gradle files must not exist"; exit 1; fi
+          if find android/app/src/main/kotlin/in -type f 2>/dev/null | grep .; then echo "Invalid Kotlin package path still exists"; exit 1; fi
           if grep -R "8.3.2" android; then echo "Old AGP 8.3.2 still exists"; exit 1; fi
           flutter clean
       - name: Get packages
