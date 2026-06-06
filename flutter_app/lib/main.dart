@@ -107,27 +107,198 @@ class _OxDigitalAppState extends State<OxDigitalApp> {
 
 class ApiClient {
   String? token;
+  bool demoMode = false;
+  Map<String, dynamic>? demoUser;
   Map<String, String> get headers => {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
       };
   Future<Map<String, dynamic>> get(String path) async {
-    final res = await http.get(Uri.parse('$apiUrl$path'), headers: headers);
-    return _decode(res);
+    if (apiUrl == 'demo') {
+      demoMode = true;
+      return DemoApi.get(path, demoUser);
+    }
+    if (demoMode) return DemoApi.get(path, demoUser);
+    try {
+      final res = await http.get(Uri.parse('$apiUrl$path'), headers: headers).timeout(const Duration(seconds: 8));
+      return _decode(res);
+    } catch (_) {
+      demoMode = true;
+      return DemoApi.get(path, demoUser);
+    }
   }
   Future<Map<String, dynamic>> post(String path, Map body) async {
-    final res = await http.post(Uri.parse('$apiUrl$path'), headers: headers, body: jsonEncode(body));
-    return _decode(res);
+    if (apiUrl == 'demo') {
+      final data = DemoApi.post(path, body, demoUser);
+      demoMode = true;
+      demoUser = data['user'] ?? demoUser;
+      token = data['token'] ?? token;
+      return data;
+    }
+    if (demoMode || path == '/api/login') {
+      try {
+        final res = await http.post(Uri.parse('$apiUrl$path'), headers: headers, body: jsonEncode(body)).timeout(const Duration(seconds: 8));
+        return _decode(res);
+      } catch (_) {
+        final data = DemoApi.post(path, body, demoUser);
+        demoMode = true;
+        demoUser = data['user'] ?? demoUser;
+        token = data['token'] ?? token;
+        return data;
+      }
+    }
+    try {
+      final res = await http.post(Uri.parse('$apiUrl$path'), headers: headers, body: jsonEncode(body)).timeout(const Duration(seconds: 8));
+      return _decode(res);
+    } catch (_) {
+      demoMode = true;
+      return DemoApi.post(path, body, demoUser);
+    }
   }
   Future<Map<String, dynamic>> put(String path, Map body) async {
-    final res = await http.put(Uri.parse('$apiUrl$path'), headers: headers, body: jsonEncode(body));
-    return _decode(res);
+    if (apiUrl == 'demo') {
+      demoMode = true;
+      return DemoApi.put(path, body, demoUser);
+    }
+    if (demoMode) return DemoApi.put(path, body, demoUser);
+    try {
+      final res = await http.put(Uri.parse('$apiUrl$path'), headers: headers, body: jsonEncode(body)).timeout(const Duration(seconds: 8));
+      return _decode(res);
+    } catch (_) {
+      demoMode = true;
+      return DemoApi.put(path, body, demoUser);
+    }
   }
   Map<String, dynamic> _decode(http.Response res) {
     final data = jsonDecode(res.body.isEmpty ? '{}' : res.body) as Map<String, dynamic>;
     if (res.statusCode >= 400) throw Exception(data['error'] ?? 'Request failed');
     return data;
   }
+}
+
+class DemoApi {
+  static final users = <Map<String, dynamic>>[
+    {'id': 'usr_admin', 'name': 'Abhishek Sir', 'mobile': '9000000001', 'email': 'admin@oxdigital.in', 'role': 'admin', 'status': 'active', 'avatar': 'AS'},
+    {'id': 'usr_telecaller', 'name': 'Priya Sharma', 'mobile': '9000000002', 'email': 'telecaller@oxdigital.in', 'role': 'telecaller', 'status': 'active', 'avatar': 'PS'},
+    {'id': 'usr_salesman', 'name': 'Rahul Kumar', 'mobile': '9000000003', 'email': 'salesman@oxdigital.in', 'role': 'salesman', 'status': 'active', 'avatar': 'RK'},
+    {'id': 'usr_salesman2', 'name': 'Vikram Singh', 'mobile': '9000000004', 'email': 'vikram@oxdigital.in', 'role': 'salesman', 'status': 'active', 'avatar': 'VS'},
+  ];
+  static final meetings = <Map<String, dynamic>>[
+    _meeting('mtg_1', 'Amit Enterprises', 'Google Ads', 10, 'upcoming', 'usr_telecaller', 'usr_salesman'),
+    _meeting('mtg_2', 'Neha Store', 'Social Media Management', 12, 'upcoming', 'usr_telecaller', 'usr_salesman2'),
+    _meeting('mtg_3', 'Shree Traders', 'Website Development', 15, 'follow-up', 'usr_telecaller', 'usr_salesman'),
+    _meeting('mtg_4', 'Orbit Classes', 'Facebook/Instagram Ads', -14, 'sale-done', 'usr_telecaller', 'usr_salesman'),
+  ];
+
+  static Map<String, dynamic> _meeting(String id, String customer, String service, int hour, String status, String telecallerId, String salesmanId) {
+    final at = DateTime.now();
+    final meetingAt = hour < 0 ? DateTime(at.year, at.month, at.day - 1, -hour) : DateTime(at.year, at.month, at.day, hour);
+    return {
+      'id': id,
+      'customerName': customer,
+      'mobile': '9876543210',
+      'whatsapp': '9876543210',
+      'businessName': customer,
+      'businessCategory': 'Digital Marketing',
+      'address': '123, MG Road, Indore, MP',
+      'mapLocation': '22.7196,75.8577',
+      'interestedService': service,
+      'expectedBudget': 25000,
+      'notes': 'Demo lead for offline app testing.',
+      'meetingAt': meetingAt.toIso8601String(),
+      'blockedStart': meetingAt.subtract(const Duration(hours: 1)).toIso8601String(),
+      'blockedEnd': meetingAt.add(const Duration(hours: 1)).toIso8601String(),
+      'telecallerId': telecallerId,
+      'salesmanId': salesmanId,
+      'telecallerName': 'Priya Sharma',
+      'salesmanName': salesmanId == 'usr_salesman' ? 'Rahul Kumar' : 'Vikram Singh',
+      'status': status,
+      'result': status == 'sale-done' ? {'totalAmount': 25000, 'receivedAmount': 15000, 'pendingAmount': 10000} : null,
+    };
+  }
+
+  static List<Map<String, dynamic>> scopedMeetings(Map<String, dynamic>? user) {
+    if (user == null || user['role'] == 'admin') return meetings;
+    if (user['role'] == 'telecaller') return meetings.where((m) => m['telecallerId'] == user['id']).toList();
+    return meetings.where((m) => m['salesmanId'] == user['id']).toList();
+  }
+
+  static Map<String, dynamic> post(String path, Map body, Map<String, dynamic>? user) {
+    if (path == '/api/login') {
+      Map<String, dynamic>? found;
+      for (final candidate in users) {
+        if (candidate['email'].toString().toLowerCase() == '${body['email']}'.toLowerCase()) {
+          found = candidate;
+          break;
+        }
+      }
+      if (found == null || body['password'] != '123456') throw Exception('Invalid login details');
+      return {'token': 'demo-token-${found['id']}', 'user': found};
+    }
+    if (path == '/api/meetings') {
+      final m = {
+        ...Map<String, dynamic>.from(body),
+        'id': 'mtg_${DateTime.now().millisecondsSinceEpoch}',
+        'status': 'upcoming',
+        'telecallerId': user?['id'] ?? 'usr_telecaller',
+        'telecallerName': user?['name'] ?? 'Priya Sharma',
+        'salesmanName': users.firstWhere((u) => u['id'] == body['salesmanId'], orElse: () => users[2])['name'],
+        'result': null,
+      };
+      meetings.add(m);
+      return {'meeting': m};
+    }
+    return {};
+  }
+
+  static Map<String, dynamic> put(String path, Map body, Map<String, dynamic>? user) {
+    if (path.contains('/api/meetings/') && path.endsWith('/result')) {
+      final id = path.split('/')[3];
+      final m = meetings.firstWhere((x) => x['id'] == id);
+      m['status'] = body['status'] == 'Sale Done' ? 'sale-done' : body['status'] == 'Follow-up Required' ? 'follow-up' : 'completed';
+      m['result'] = body;
+      return {'meeting': m};
+    }
+    return {};
+  }
+
+  static Map<String, dynamic> get(String path, Map<String, dynamic>? user) {
+    if (path == '/api/me') return {'user': user ?? users[1], 'settings': settings};
+    if (path == '/api/users') return {'users': users};
+    if (path.startsWith('/api/meetings')) return {'meetings': scopedMeetings(user)};
+    if (path.startsWith('/api/slots')) return {'slots': List.generate(10, (i) {
+      final hour = i + 9;
+      final blocked = [10, 11, 12, 15].contains(hour);
+      final at = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day, hour);
+      return {'time': '${hour.toString().padLeft(2, '0')}:00', 'meetingAt': at.toIso8601String(), 'available': !blocked, 'status': blocked ? 'blocked' : 'available'};
+    })};
+    if (path == '/api/dashboard') {
+      final list = scopedMeetings(user);
+      return {'metrics': metrics(list), 'meetings': list, 'performance': []};
+    }
+    if (path == '/api/followups') {
+      final list = scopedMeetings(user).where((m) => m['status'] == 'follow-up').toList();
+      return {'today': list, 'upcoming': list, 'overdue': []};
+    }
+    return {'settings': settings};
+  }
+
+  static Map<String, dynamic> metrics(List<Map<String, dynamic>> list) => {
+        'totalMeetings': list.length,
+        'todayMeetings': list.where((m) => DateTime.parse(m['meetingAt']).day == DateTime.now().day).length,
+        'upcomingMeetings': list.where((m) => m['status'] == 'upcoming').length,
+        'completedMeetings': list.where((m) => m['status'] == 'completed').length,
+        'cancelledMeetings': list.where((m) => m['status'] == 'cancelled').length,
+        'saleDoneMeetings': list.where((m) => m['status'] == 'sale-done').length,
+        'followUps': list.where((m) => m['status'] == 'follow-up').length,
+        'pendingPayments': 10000,
+        'revenue': 25000,
+      };
+  static final settings = {
+    'companyName': 'OxDigital',
+    'workingHours': {'start': '09:00', 'end': '19:00'},
+    'meetingBufferMinutes': 60,
+  };
 }
 
 class LoginScreen extends StatefulWidget {
@@ -180,7 +351,15 @@ class _LoginScreenState extends State<LoginScreen> {
                 FilledButton(
                   onPressed: busy ? null : () async {
                     setState(() => busy = true);
-                    try { await widget.onLogin(email.text, password.text); } finally { if (mounted) setState(() => busy = false); }
+                    try {
+                      await widget.onLogin(email.text, password.text);
+                    } catch (error) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))));
+                      }
+                    } finally {
+                      if (mounted) setState(() => busy = false);
+                    }
                   },
                   style: primaryButton(),
                   child: Text(busy ? 'Please wait...' : 'Login'),

@@ -7,7 +7,7 @@ workflows:
     environment:
       flutter: stable
       vars:
-        API_URL: "https://your-api-domain.com"
+        API_URL: "demo"
     scripts:
       - name: Prepare Android project
         script: |
@@ -73,7 +73,7 @@ workflows:
     environment:
       flutter: stable
       vars:
-        API_URL: "https://your-api-domain.com"
+        API_URL: "demo"
     scripts:
       - name: Prepare Android project
         script: |
@@ -134,7 +134,7 @@ workflows:
     environment:
       flutter: stable
       vars:
-        API_URL: "https://your-api-domain.com"
+        API_URL: "demo"
     scripts:
       - name: Prepare Android project
         script: |
