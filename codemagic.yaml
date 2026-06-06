@@ -9,29 +9,34 @@ workflows:
       vars:
         API_URL: "https://your-api-domain.com"
     scripts:
-      - name: Ensure Flutter Android project
+      - name: Prepare Android project
         script: |
-          flutter create --platforms=android --project-name oxdigital_meeting_scheduler --org com.oxdigital .
+          set -e
+          rm -rf test
+          rm -f android/settings.gradle.kts android/build.gradle.kts android/app/build.gradle.kts
           FLUTTER_SDK="${FLUTTER_ROOT:-$(dirname "$(dirname "$(which flutter)")")}"
           echo "flutter.sdk=$FLUTTER_SDK" > android/local.properties
           echo "flutter.versionName=1.0.0" >> android/local.properties
           echo "flutter.versionCode=1" >> android/local.properties
-          rm -f android/settings.gradle.kts android/build.gradle.kts android/app/build.gradle.kts
-          sed -i.bak 's/id "com.android.application" version "[^"]*"/id "com.android.application" version "8.6.0"/' android/settings.gradle
-          sed -i.bak 's/id "org.jetbrains.kotlin.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "2.0.20"/' android/settings.gradle
+          perl -0pi -e 's/id "com\.android\.application" version "[^"]*"/id "com.android.application" version "8.6.0"/g' android/settings.gradle
+          perl -0pi -e 's/id "org\.jetbrains\.kotlin\.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "2.0.20"/g' android/settings.gradle
           printf 'org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=2G -XX:+HeapDumpOnOutOfMemoryError\nandroid.useAndroidX=true\nandroid.enableJetifier=true\nandroid.newDsl=false\n' > android/gradle.properties
+          echo "----- android/settings.gradle -----"
+          cat android/settings.gradle
+          echo "----- checking for unsupported files/versions -----"
+          if find android -name '*.kts' | grep .; then echo "KTS Gradle files must not exist"; exit 1; fi
+          if grep -R "8.3.2" android; then echo "Old AGP 8.3.2 still exists"; exit 1; fi
           flutter clean
-          rm -rf test
       - name: Get packages
         script: flutter pub get
       - name: Analyze
         script: flutter analyze lib android pubspec.yaml --no-fatal-infos --no-fatal-warnings
       - name: Build debug APK
-        script: flutter build apk --debug --dart-define=API_URL=$API_URL
+        script: flutter build apk --debug --android-skip-build-dependency-validation --dart-define=API_URL=$API_URL
       - name: Build release APK
-        script: flutter build apk --release --dart-define=API_URL=$API_URL
+        script: flutter build apk --release --android-skip-build-dependency-validation --dart-define=API_URL=$API_URL
       - name: Build release AAB
-        script: flutter build appbundle --release --dart-define=API_URL=$API_URL
+        script: flutter build appbundle --release --android-skip-build-dependency-validation --dart-define=API_URL=$API_URL
     artifacts:
       - build/app/outputs/flutter-apk/app-debug.apk
       - build/app/outputs/flutter-apk/app-release.apk
@@ -48,27 +53,32 @@ workflows:
       vars:
         API_URL: "https://your-api-domain.com"
     scripts:
-      - name: Ensure Flutter Android project
+      - name: Prepare Android project
         script: |
-          flutter create --platforms=android --project-name oxdigital_meeting_scheduler --org com.oxdigital .
+          set -e
+          rm -rf test
+          rm -f android/settings.gradle.kts android/build.gradle.kts android/app/build.gradle.kts
           FLUTTER_SDK="${FLUTTER_ROOT:-$(dirname "$(dirname "$(which flutter)")")}"
           echo "flutter.sdk=$FLUTTER_SDK" > android/local.properties
           echo "flutter.versionName=1.0.0" >> android/local.properties
           echo "flutter.versionCode=1" >> android/local.properties
-          rm -f android/settings.gradle.kts android/build.gradle.kts android/app/build.gradle.kts
-          sed -i.bak 's/id "com.android.application" version "[^"]*"/id "com.android.application" version "8.6.0"/' android/settings.gradle
-          sed -i.bak 's/id "org.jetbrains.kotlin.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "2.0.20"/' android/settings.gradle
+          perl -0pi -e 's/id "com\.android\.application" version "[^"]*"/id "com.android.application" version "8.6.0"/g' android/settings.gradle
+          perl -0pi -e 's/id "org\.jetbrains\.kotlin\.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "2.0.20"/g' android/settings.gradle
           printf 'org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=2G -XX:+HeapDumpOnOutOfMemoryError\nandroid.useAndroidX=true\nandroid.enableJetifier=true\nandroid.newDsl=false\n' > android/gradle.properties
+          echo "----- android/settings.gradle -----"
+          cat android/settings.gradle
+          echo "----- checking for unsupported files/versions -----"
+          if find android -name '*.kts' | grep .; then echo "KTS Gradle files must not exist"; exit 1; fi
+          if grep -R "8.3.2" android; then echo "Old AGP 8.3.2 still exists"; exit 1; fi
           flutter clean
-          rm -rf test
       - name: Get packages
         script: flutter pub get
       - name: Analyze
         script: flutter analyze lib android pubspec.yaml --no-fatal-infos --no-fatal-warnings
       - name: Build release APK
-        script: flutter build apk --release --dart-define=API_URL=$API_URL
+        script: flutter build apk --release --android-skip-build-dependency-validation --dart-define=API_URL=$API_URL
       - name: Build release AAB
-        script: flutter build appbundle --release --dart-define=API_URL=$API_URL
+        script: flutter build appbundle --release --android-skip-build-dependency-validation --dart-define=API_URL=$API_URL
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
       - build/app/outputs/bundle/release/app-release.aab
@@ -84,27 +94,32 @@ workflows:
       vars:
         API_URL: "https://your-api-domain.com"
     scripts:
-      - name: Ensure Flutter Android project
+      - name: Prepare Android project
         script: |
-          flutter create --platforms=android --project-name oxdigital_meeting_scheduler --org com.oxdigital .
+          set -e
+          rm -rf test
+          rm -f android/settings.gradle.kts android/build.gradle.kts android/app/build.gradle.kts
           FLUTTER_SDK="${FLUTTER_ROOT:-$(dirname "$(dirname "$(which flutter)")")}"
           echo "flutter.sdk=$FLUTTER_SDK" > android/local.properties
           echo "flutter.versionName=1.0.0" >> android/local.properties
           echo "flutter.versionCode=1" >> android/local.properties
-          rm -f android/settings.gradle.kts android/build.gradle.kts android/app/build.gradle.kts
-          sed -i.bak 's/id "com.android.application" version "[^"]*"/id "com.android.application" version "8.6.0"/' android/settings.gradle
-          sed -i.bak 's/id "org.jetbrains.kotlin.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "2.0.20"/' android/settings.gradle
+          perl -0pi -e 's/id "com\.android\.application" version "[^"]*"/id "com.android.application" version "8.6.0"/g' android/settings.gradle
+          perl -0pi -e 's/id "org\.jetbrains\.kotlin\.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "2.0.20"/g' android/settings.gradle
           printf 'org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=2G -XX:+HeapDumpOnOutOfMemoryError\nandroid.useAndroidX=true\nandroid.enableJetifier=true\nandroid.newDsl=false\n' > android/gradle.properties
+          echo "----- android/settings.gradle -----"
+          cat android/settings.gradle
+          echo "----- checking for unsupported files/versions -----"
+          if find android -name '*.kts' | grep .; then echo "KTS Gradle files must not exist"; exit 1; fi
+          if grep -R "8.3.2" android; then echo "Old AGP 8.3.2 still exists"; exit 1; fi
           flutter clean
-          rm -rf test
       - name: Get packages
         script: flutter pub get
       - name: Analyze
         script: flutter analyze lib android pubspec.yaml --no-fatal-infos --no-fatal-warnings
       - name: Build release APK
-        script: flutter build apk --release --dart-define=API_URL=$API_URL
+        script: flutter build apk --release --android-skip-build-dependency-validation --dart-define=API_URL=$API_URL
       - name: Build release AAB
-        script: flutter build appbundle --release --dart-define=API_URL=$API_URL
+        script: flutter build appbundle --release --android-skip-build-dependency-validation --dart-define=API_URL=$API_URL
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
       - build/app/outputs/bundle/release/app-release.aab

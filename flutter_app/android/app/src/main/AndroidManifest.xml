@@ -6,7 +6,7 @@
     <application
         android:label="OxDigital CRM"
         android:name="${applicationName}"
-        android:icon="@drawable/launch_background">
+        android:icon="@drawable/app_icon">
         <activity
             android:name=".MainActivity"
             android:exported="true"
