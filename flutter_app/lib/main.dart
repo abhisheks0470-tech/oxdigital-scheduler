@@ -623,6 +623,8 @@ class Shell extends StatelessWidget {
       );
     } else if (view == 'reports') {
       body = ReportsScreen(
+        user: user,
+        users: users,
         meetings: meetings,
         onOpen: (m) => openMeeting(context, m),
       );
@@ -1266,9 +1268,13 @@ class _UpdateDialogState extends State<UpdateDialog> {
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({
     super.key,
+    required this.user,
+    required this.users,
     required this.meetings,
     required this.onOpen,
   });
+  final Map<String, dynamic> user;
+  final List users;
   final List meetings;
   final ValueChanged<Map> onOpen;
   @override
@@ -1354,6 +1360,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
             metric('Pending Payments', m['pendingPayments'], red),
           ],
         ),
+        if (widget.user['role'] == 'admin') ...[
+          section('Telecaller Wise Sale'),
+          for (final u in widget.users.where((u) => u['role'] == 'telecaller'))
+            saleSummaryTile(Map<String, dynamic>.from(u), list, 'telecallerId'),
+          section('Salesman Wise Sale'),
+          for (final u in widget.users.where((u) => u['role'] == 'salesman'))
+            saleSummaryTile(Map<String, dynamic>.from(u), list, 'salesmanId'),
+        ],
         section('Filtered Timeline'),
         for (final meeting in list)
           meetingTile(meeting, () => widget.onOpen(meeting)),
@@ -1545,13 +1559,27 @@ class ProfileScreen extends StatelessWidget {
           },
         )
       else
-        const Card(
-          child: ListTile(
-            title: Text('Admin live location view'),
-            subtitle: Text(
-              'Salesman check-ins appear in the desktop admin panel.',
-            ),
-          ),
+        FutureBuilder<Map<String, dynamic>>(
+          future: api.get('/api/live-locations'),
+          builder: (context, snap) {
+            final salesmen = List.from(snap.data?['salesmen'] ?? []);
+            if (salesmen.isEmpty) {
+              return const Card(
+                child: ListTile(
+                  title: Text('No salesman location found'),
+                  subtitle: Text(
+                    'Salesman check-in ke baad location yahan dikhegi.',
+                  ),
+                ),
+              );
+            }
+            return Column(
+              children: [
+                for (final raw in salesmen)
+                  liveLocationTile(Map<String, dynamic>.from(raw)),
+              ],
+            );
+          },
         ),
       section('Company Settings'),
       const Card(
@@ -1640,6 +1668,54 @@ Widget metric(String label, dynamic value, [Color color = blue]) => Card(
     ),
   ),
 );
+Widget saleSummaryTile(
+  Map<String, dynamic> user,
+  List<Map<String, dynamic>> meetings,
+  String key,
+) {
+  final owned = meetings.where((m) => m[key] == user['id']).toList();
+  final sale = owned.where((m) => m['status'] == 'sale-done').toList();
+  final revenue = sale.fold<num>(
+    0,
+    (s, m) => s + resultMoney(m, 'totalAmount'),
+  );
+  final pending = sale.fold<num>(
+    0,
+    (s, m) => s + resultMoney(m, 'pendingAmount'),
+  );
+  return Card(
+    child: ListTile(
+      leading: CircleAvatar(child: Text(user['avatar'] ?? 'OX')),
+      title: Text(user['name'] ?? ''),
+      subtitle: Text(
+        'Meetings: ${owned.length}  Sales: ${sale.length}\nRevenue: Rs $revenue  Pending: Rs $pending',
+      ),
+    ),
+  );
+}
+
+Widget liveLocationTile(Map<String, dynamic> salesman) {
+  final loc = salesman['currentLocation'];
+  final label = loc is Map
+      ? loc['label'] ?? 'Location available'
+      : 'Location not checked-in yet';
+  final updatedAt = loc is Map && loc['updatedAt'] != null
+      ? '${fmt(loc['updatedAt'])} ${time(loc['updatedAt'])}'
+      : '-';
+  final target = loc is Map ? '${loc['lat']},${loc['lng']}' : salesman['name'];
+  return Card(
+    child: ListTile(
+      leading: CircleAvatar(child: Text(salesman['avatar'] ?? 'OX')),
+      title: Text(salesman['name'] ?? ''),
+      subtitle: Text('$label\nLast update: $updatedAt'),
+      trailing: IconButton(
+        icon: const Icon(Icons.navigation),
+        onPressed: () => openExternal(mapUrl(target)),
+      ),
+    ),
+  );
+}
+
 Widget dateRow(
   BuildContext context,
   String label,
