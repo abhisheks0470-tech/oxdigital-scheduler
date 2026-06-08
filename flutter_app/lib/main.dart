@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -25,6 +26,7 @@ class _OxDigitalAppState extends State<OxDigitalApp> {
   List meetings = [];
   List users = [];
   String view = 'dashboard';
+  Timer? syncTimer;
 
   @override
   void initState() {
@@ -39,7 +41,8 @@ class _OxDigitalAppState extends State<OxDigitalApp> {
       try {
         final me = await api.get('/api/me');
         setState(() => user = me['user']);
-        await refresh();
+        await syncNow();
+        startLiveSync();
       } catch (_) {
         await prefs.remove('token');
       }
@@ -47,16 +50,29 @@ class _OxDigitalAppState extends State<OxDigitalApp> {
   }
 
   Future<void> refresh() async {
-    final data = await Future.wait([
-      api.get('/api/dashboard'),
-      api.get('/api/meetings'),
-      api.get('/api/users'),
-    ]);
+    final data = await Future.wait([api.get('/api/dashboard'), api.get('/api/meetings'), api.get('/api/users')]);
     setState(() {
       dashboard = data[0];
       meetings = data[1]['meetings'];
       users = data[2]['users'];
     });
+  }
+
+  Future<void> syncNow() async {
+    if (user == null) return;
+    final data = await api.get('/api/sync');
+    if (!mounted) return;
+    setState(() {
+      user = data['user'];
+      dashboard = {'metrics': data['metrics'], 'meetings': data['meetings']};
+      meetings = data['meetings'];
+      users = data['users'];
+    });
+  }
+
+  void startLiveSync() {
+    syncTimer?.cancel();
+    syncTimer = Timer.periodic(const Duration(seconds: 6), (_) => syncNow().catchError((_) {}));
   }
 
   Future<void> login(String email, String password) async {
@@ -65,17 +81,25 @@ class _OxDigitalAppState extends State<OxDigitalApp> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('token', api.token!);
     setState(() => user = data['user']);
-    await refresh();
+    await syncNow();
+    startLiveSync();
   }
 
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
+    syncTimer?.cancel();
     setState(() {
       user = null;
       dashboard = null;
       view = 'dashboard';
     });
+  }
+
+  @override
+  void dispose() {
+    syncTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -119,13 +143,8 @@ class ApiClient {
       return DemoApi.get(path, demoUser);
     }
     if (demoMode) return DemoApi.get(path, demoUser);
-    try {
-      final res = await http.get(Uri.parse('$apiUrl$path'), headers: headers).timeout(const Duration(seconds: 8));
-      return _decode(res);
-    } catch (_) {
-      demoMode = true;
-      return DemoApi.get(path, demoUser);
-    }
+    final res = await http.get(Uri.parse('$apiUrl$path'), headers: headers).timeout(const Duration(seconds: 12));
+    return _decode(res);
   }
   Future<Map<String, dynamic>> post(String path, Map body) async {
     if (apiUrl == 'demo') {
@@ -136,24 +155,11 @@ class ApiClient {
       return data;
     }
     if (demoMode || path == '/api/login') {
-      try {
-        final res = await http.post(Uri.parse('$apiUrl$path'), headers: headers, body: jsonEncode(body)).timeout(const Duration(seconds: 8));
-        return _decode(res);
-      } catch (_) {
-        final data = DemoApi.post(path, body, demoUser);
-        demoMode = true;
-        demoUser = data['user'] ?? demoUser;
-        token = data['token'] ?? token;
-        return data;
-      }
-    }
-    try {
-      final res = await http.post(Uri.parse('$apiUrl$path'), headers: headers, body: jsonEncode(body)).timeout(const Duration(seconds: 8));
+      final res = await http.post(Uri.parse('$apiUrl$path'), headers: headers, body: jsonEncode(body)).timeout(const Duration(seconds: 12));
       return _decode(res);
-    } catch (_) {
-      demoMode = true;
-      return DemoApi.post(path, body, demoUser);
     }
+    final res = await http.post(Uri.parse('$apiUrl$path'), headers: headers, body: jsonEncode(body)).timeout(const Duration(seconds: 12));
+    return _decode(res);
   }
   Future<Map<String, dynamic>> put(String path, Map body) async {
     if (apiUrl == 'demo') {
@@ -161,13 +167,8 @@ class ApiClient {
       return DemoApi.put(path, body, demoUser);
     }
     if (demoMode) return DemoApi.put(path, body, demoUser);
-    try {
-      final res = await http.put(Uri.parse('$apiUrl$path'), headers: headers, body: jsonEncode(body)).timeout(const Duration(seconds: 8));
-      return _decode(res);
-    } catch (_) {
-      demoMode = true;
-      return DemoApi.put(path, body, demoUser);
-    }
+    final res = await http.put(Uri.parse('$apiUrl$path'), headers: headers, body: jsonEncode(body)).timeout(const Duration(seconds: 12));
+    return _decode(res);
   }
   Map<String, dynamic> _decode(http.Response res) {
     final data = jsonDecode(res.body.isEmpty ? '{}' : res.body) as Map<String, dynamic>;
@@ -396,13 +397,17 @@ class Shell extends StatelessWidget {
       body = CalendarScreen(meetings: meetings, onOpen: (m) => openMeeting(context, m));
     } else if (view == 'reports') {
       body = ReportsScreen(metrics: dashboard?['metrics'] ?? {});
+    } else if (view == 'users') {
+      body = UsersScreen(users: users, api: api, onRefresh: onRefresh);
+    } else if (view == 'profile') {
+      body = ProfileScreen(user: user, api: api);
     } else if (view == 'followups') {
       body = FollowupScreen(api: api);
     } else {
       body = DashboardScreen(user: user, dashboard: dashboard, meetings: meetings, onBook: () => onView('booking'), onOpen: (m) => openMeeting(context, m));
     }
     final List<(String, IconData, String)> nav = user['role'] == 'admin'
-        ? const [('dashboard', Icons.home, 'Dashboard'), ('calendar', Icons.calendar_month, 'Calendar'), ('reports', Icons.bar_chart, 'Reports'), ('followups', Icons.notifications, 'Follow-ups'), ('profile', Icons.person, 'Profile')]
+        ? const [('dashboard', Icons.home, 'Dashboard'), ('calendar', Icons.calendar_month, 'Calendar'), ('users', Icons.group, 'Users'), ('reports', Icons.bar_chart, 'Reports'), ('profile', Icons.settings, 'Settings')]
         : const [('dashboard', Icons.home, 'Dashboard'), ('calendar', Icons.calendar_month, 'Meetings'), ('booking', Icons.add_circle, 'Book'), ('followups', Icons.notifications, 'Follow-ups'), ('profile', Icons.person, 'Profile')];
     final selected = nav.indexWhere((n) => n.$1 == view);
     return Scaffold(
@@ -662,6 +667,76 @@ class FollowupScreen extends StatelessWidget {
       ]);
     },
   );
+}
+
+class UsersScreen extends StatelessWidget {
+  const UsersScreen({super.key, required this.users, required this.api, required this.onRefresh});
+  final List users;
+  final ApiClient api;
+  final Future<void> Function() onRefresh;
+  @override
+  Widget build(BuildContext context) => ListView(padding: const EdgeInsets.all(18), children: [
+    crmHeader('User Management'),
+    FilledButton.icon(style: greenButton(), onPressed: () => userDialog(context), icon: const Icon(Icons.person_add), label: const Text('Add User')),
+    const SizedBox(height: 12),
+    for (final u in users) Card(child: ListTile(leading: CircleAvatar(child: Text(u['avatar'] ?? 'OX')), title: Text(u['name']), subtitle: Text('${u['email']}\n${u['role']} · ${u['status']}'), trailing: const Icon(Icons.edit), onTap: () => userDialog(context, Map<String, dynamic>.from(u)))),
+  ]);
+  void userDialog(BuildContext context, [Map<String, dynamic>? user]) {
+    final name = TextEditingController(text: user?['name'] ?? '');
+    final mobile = TextEditingController(text: user?['mobile'] ?? '');
+    final email = TextEditingController(text: user?['email'] ?? '');
+    final password = TextEditingController(text: '');
+    String role = user?['role'] ?? 'telecaller';
+    String status = user?['status'] ?? 'active';
+    showDialog(context: context, builder: (_) => StatefulBuilder(builder: (context, setLocal) => AlertDialog(
+      title: Text(user == null ? 'Add User' : 'Edit User'),
+      content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        TextField(controller: name, decoration: crmInput('Name')),
+        const SizedBox(height: 8),
+        TextField(controller: mobile, decoration: crmInput('Mobile')),
+        const SizedBox(height: 8),
+        TextField(controller: email, decoration: crmInput('Email')),
+        const SizedBox(height: 8),
+        TextField(controller: password, decoration: crmInput('Password')),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(initialValue: role, decoration: crmInput('Role'), items: const ['telecaller','salesman','admin'].map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(), onChanged: (v) => setLocal(() => role = v!)),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(initialValue: status, decoration: crmInput('Status'), items: const ['active','inactive'].map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(), onChanged: (v) => setLocal(() => status = v!)),
+      ])),
+      actions: [FilledButton(style: greenButton(), onPressed: () async {
+        final payload = {'name': name.text, 'mobile': mobile.text, 'email': email.text, 'password': password.text.isEmpty ? '123456' : password.text, 'role': role, 'status': status};
+        if (user == null) {
+          await api.post('/api/users', payload);
+        } else {
+          await api.put('/api/users/${user['id']}', payload);
+        }
+        if (context.mounted) Navigator.pop(context);
+        await onRefresh();
+      }, child: const Text('Save'))],
+    )));
+  }
+}
+
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key, required this.user, required this.api});
+  final Map user;
+  final ApiClient api;
+  @override
+  Widget build(BuildContext context) => ListView(padding: const EdgeInsets.all(18), children: [
+    crmHeader(user['role'] == 'admin' ? 'Settings' : 'Profile'),
+    Card(child: ListTile(leading: CircleAvatar(child: Text(user['avatar'] ?? 'OX')), title: Text(user['name']), subtitle: Text('${user['email']}\n${user['role']}'))),
+    section('Live Location'),
+    if (user['role'] == 'salesman')
+      FilledButton.icon(style: greenButton(), icon: const Icon(Icons.my_location), label: const Text('Send Check-in Location'), onPressed: () async {
+        await api.post('/api/live-locations', {'lat': 22.7196, 'lng': 75.8577, 'label': 'Check-in from mobile'});
+        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location synced with admin panel')));
+      })
+    else
+      const Card(child: ListTile(title: Text('Admin live location view'), subtitle: Text('Salesman check-ins appear in the desktop admin panel.'))),
+    section('Company Settings'),
+    const Card(child: ListTile(title: Text('Working Hours'), subtitle: Text('09:00 AM - 07:00 PM'))),
+    const Card(child: ListTile(title: Text('Meeting Buffer'), subtitle: Text('1 hour before and 1 hour after'))),
+  ]);
 }
 
 const blue = Color(0xff034d85);

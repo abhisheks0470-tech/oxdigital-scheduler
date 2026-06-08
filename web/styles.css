@@ -318,3 +318,29 @@ textarea { resize: vertical; min-height: 82px; }
   .phone { min-height: 100vh; border-radius: 0; border: 0; }
   .phone:not(.active-screen) { display: none; }
 }
+
+@media (min-width: 900px) {
+  .shell {
+    max-width: none;
+    padding: 24px;
+  }
+  .phone-grid {
+    grid-template-columns: 360px minmax(520px, 1fr);
+  }
+  .phone {
+    min-height: calc(100vh - 48px);
+    border-radius: 14px;
+  }
+  .phone.single {
+    max-width: 430px;
+  }
+  .bottom-nav {
+    position: static;
+  }
+  .stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .modal-box {
+    max-width: 760px;
+  }
+}

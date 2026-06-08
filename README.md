@@ -33,6 +33,28 @@ http://localhost:4100
 
 The local API stores data in `backend/data/db.json` and uploaded proof placeholders in `backend/uploads`.
 
+## Real Live Sync Setup
+
+The desktop website and Android app sync through the same backend API.
+
+1. Host the `backend` folder on a Node-capable server.
+2. Keep the `web` folder beside it, because the backend serves the desktop website.
+3. Open the website at your backend domain:
+
+```text
+https://oxdigital.in/scheduler
+```
+
+4. In `codemagic.yaml`, set `API_URL` to the same backend domain:
+
+```yaml
+API_URL: "https://oxdigital.in/scheduler"
+```
+
+5. Rebuild the APK/AAB in Codemagic.
+
+Both clients call `/api/sync` every few seconds, so meetings, reports, users, follow-ups, settings, notifications, and salesman location updates stay synced.
+
 ## API Overview
 
 - `POST /api/login`

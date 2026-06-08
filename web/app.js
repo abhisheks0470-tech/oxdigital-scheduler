@@ -1,9 +1,12 @@
-const API = '';
-const logo = '/assets/oxdigital-logo.svg';
+const BASE = window.location.pathname.startsWith('/scheduler') ? '/scheduler' : '';
+const API = BASE;
+const logo = `${BASE}/assets/oxdigital-logo.svg`;
 const services = ['Google Ads', 'Facebook/Instagram Ads', 'Website Development', 'Social Media Management', 'Google Business Profile', 'Complete Digital Marketing'];
 const statusLabels = { 'upcoming': 'Upcoming', 'completed': 'Completed', 'sale-done': 'Sale Done', 'follow-up': 'Follow-up', 'cancelled': 'Cancelled', 'not-interested': 'Not Interested', 'wrong-lead': 'Wrong Lead', 'client-not-available': 'Client Not Available', 'need-revisit': 'Need Revisit' };
 const state = { token: localStorage.oxToken || '', user: null, settings: null, dashboard: null, meetings: [], users: [], selectedRole: 'telecaller', booking: { step: 1 }, view: 'dashboard' };
 window.state = state;
+let syncTimer = null;
+let lastVersion = 0;
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app');
@@ -74,13 +77,34 @@ function logout() { localStorage.removeItem('oxToken'); Object.assign(state, { t
 async function bootstrap() {
   try {
     const me = await request('/api/me'); state.user = me.user; state.settings = me.settings;
-    await Promise.all([loadDashboard(), loadMeetings(), loadUsers()]);
+    await syncNow(false);
+    startSync();
     render();
   } catch { logout(); }
 }
 async function loadDashboard() { state.dashboard = await request('/api/dashboard'); }
 async function loadMeetings(query = '') { state.meetings = (await request('/api/meetings' + query)).meetings; }
 async function loadUsers() { state.users = (await request('/api/users')).users; }
+function startSync() {
+  if (syncTimer) clearInterval(syncTimer);
+  syncTimer = setInterval(() => syncNow(true), 5000);
+}
+async function syncNow(quiet = true) {
+  if (!state.token) return;
+  try {
+    const data = await request('/api/sync');
+    const changed = data.version !== lastVersion;
+    lastVersion = data.version;
+    state.user = data.user;
+    state.settings = data.settings;
+    state.dashboard = { metrics: data.metrics, meetings: data.meetings.slice(0, 12), performance: state.dashboard?.performance || [] };
+    state.meetings = data.meetings;
+    state.users = data.users;
+    if (changed && quiet && !$('.modal')) render();
+  } catch (err) {
+    if (!quiet) throw err;
+  }
+}
 function go(view) { state.view = view; if (view === 'booking') state.booking = { step: 1, date: todayValue() }; render(); }
 function render() {
   if (!state.user) return login();

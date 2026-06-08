@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const { load, save, id, hash, now } = require('./store');
 
 const PORT = Number(process.env.PORT || 4100);
+const BASE_PATH = (process.env.BASE_PATH || '/scheduler').replace(/\/$/, '');
 const root = path.join(__dirname, '..', '..');
 const webRoot = path.join(root, 'web');
 const uploadRoot = path.join(__dirname, '..', 'uploads');
@@ -44,9 +45,22 @@ const publicUser = (user) => {
 };
 
 const parseUrl = (req) => new URL(req.url, `http://${req.headers.host}`);
+const normalizePath = (url) => {
+  if (BASE_PATH && BASE_PATH !== '/' && url.pathname === BASE_PATH) url.pathname = '/';
+  if (BASE_PATH && BASE_PATH !== '/' && url.pathname.startsWith(`${BASE_PATH}/`)) {
+    url.pathname = url.pathname.slice(BASE_PATH.length) || '/';
+  }
+  return url;
+};
 const sameDay = (a, b) => new Date(a).toDateString() === new Date(b).toDateString();
 const dateOnly = (iso) => new Date(iso).toISOString().slice(0, 10);
 const money = (v) => Number(v || 0);
+const dbVersion = (db) => Math.max(
+  0,
+  ...db.meetings.map((m) => new Date(m.updatedAt || m.createdAt || 0).getTime()),
+  ...db.users.map((u) => new Date(u.updatedAt || u.createdAt || 0).getTime()),
+  ...db.notifications.map((n) => new Date(n.createdAt || 0).getTime())
+);
 
 function scopedMeetings(db, user) {
   if (user.role === 'admin') return db.meetings;
@@ -89,7 +103,7 @@ function metrics(meetings, db) {
 }
 
 function serveStatic(req, res) {
-  const url = parseUrl(req);
+  const url = normalizePath(parseUrl(req));
   let pathname = decodeURIComponent(url.pathname);
   if (pathname === '/') pathname = '/index.html';
   const candidate = path.normalize(path.join(webRoot, pathname));
@@ -120,6 +134,21 @@ async function api(req, res, url) {
   }
 
   if (!requireAuth()) return;
+
+  if (req.method === 'GET' && url.pathname === '/api/sync') {
+    const meetings = scopedMeetings(db, user).map((m) => enrichMeeting(db, m));
+    return json(res, 200, {
+      version: dbVersion(db),
+      user: publicUser(user),
+      settings: db.settings,
+      metrics: metrics(meetings, db),
+      meetings,
+      users: user.role === 'admin'
+        ? db.users.map(publicUser)
+        : db.users.filter((u) => u.status === 'active' && ['salesman', 'telecaller'].includes(u.role)).map(publicUser),
+      notifications: db.notifications.filter((n) => n.userId === user.id || user.role === 'admin').sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    });
+  }
 
   if (req.method === 'GET' && url.pathname === '/api/me') return json(res, 200, { user: publicUser(user), settings: db.settings });
   if (req.method === 'GET' && url.pathname === '/api/users') {
@@ -174,6 +203,11 @@ async function api(req, res, url) {
     save(db);
     return json(res, 201, { meeting: enrichMeeting(db, meeting) });
   }
+  if (req.method === 'GET' && url.pathname.match(/^\/api\/meetings\/[^/]+$/)) {
+    const meeting = scopedMeetings(db, user).find((m) => m.id === url.pathname.split('/').pop());
+    if (!meeting) return json(res, 404, { error: 'Meeting not found' });
+    return json(res, 200, { meeting: enrichMeeting(db, meeting) });
+  }
   if (req.method === 'GET' && url.pathname === '/api/slots') {
     const salesmanId = url.searchParams.get('salesmanId');
     const date = url.searchParams.get('date');
@@ -195,6 +229,16 @@ async function api(req, res, url) {
     meeting.result = { ...(meeting.result || {}), ...input };
     meeting.updatedAt = now();
     if (meeting.status === 'sale-done') db.notifications.push({ id: id('ntf'), userId: 'usr_admin', title: 'Sale done alert', body: `${meeting.customerName} marked sale done`, read: false, createdAt: now() });
+    save(db);
+    return json(res, 200, { meeting: enrichMeeting(db, meeting) });
+  }
+  if (req.method === 'PUT' && url.pathname.match(/^\/api\/meetings\/[^/]+\/status$/)) {
+    const meeting = db.meetings.find((m) => m.id === url.pathname.split('/')[3]);
+    if (!meeting) return json(res, 404, { error: 'Meeting not found' });
+    if (user.role === 'salesman' && meeting.salesmanId !== user.id) return json(res, 403, { error: 'Not assigned to you' });
+    const input = await body(req);
+    meeting.status = input.status || meeting.status;
+    meeting.updatedAt = now();
     save(db);
     return json(res, 200, { meeting: enrichMeeting(db, meeting) });
   }
@@ -231,9 +275,24 @@ async function api(req, res, url) {
     return json(res, 201, { url: `/uploads/${fileName}` });
   }
   if (req.method === 'GET' && url.pathname === '/api/notifications') return json(res, 200, { notifications: db.notifications.filter((n) => n.userId === user.id || user.role === 'admin').sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) });
+  if (req.method === 'PUT' && url.pathname.match(/^\/api\/notifications\/[^/]+\/read$/)) {
+    const notification = db.notifications.find((n) => n.id === url.pathname.split('/')[3] && (n.userId === user.id || user.role === 'admin'));
+    if (!notification) return json(res, 404, { error: 'Notification not found' });
+    notification.read = true;
+    save(db);
+    return json(res, 200, { notification });
+  }
   if (req.method === 'GET' && url.pathname === '/api/live-locations') {
     if (user.role !== 'admin') return json(res, 403, { error: 'Admin only' });
     return json(res, 200, { salesmen: db.users.filter((u) => u.role === 'salesman').map((u) => publicUser(u)) });
+  }
+  if (req.method === 'POST' && url.pathname === '/api/live-locations') {
+    if (user.role !== 'salesman') return json(res, 403, { error: 'Salesman only' });
+    const input = await body(req);
+    user.currentLocation = { lat: Number(input.lat), lng: Number(input.lng), label: input.label || 'Updated from mobile', updatedAt: now() };
+    user.updatedAt = now();
+    save(db);
+    return json(res, 200, { user: publicUser(user) });
   }
   if (req.method === 'GET' && url.pathname === '/api/settings') return json(res, 200, { settings: db.settings });
   if (req.method === 'PUT' && url.pathname === '/api/settings') {
@@ -247,7 +306,7 @@ async function api(req, res, url) {
 
 http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') return json(res, 204, {});
-  const url = parseUrl(req);
+  const url = normalizePath(parseUrl(req));
   if (url.pathname.startsWith('/api/')) return api(req, res, url).catch((err) => json(res, 500, { error: err.message }));
   if (url.pathname.startsWith('/uploads/')) {
     const file = path.normalize(path.join(uploadRoot, url.pathname.replace('/uploads/', '')));

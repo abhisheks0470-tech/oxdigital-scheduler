@@ -10,3 +10,5 @@ flutter run --dart-define=API_URL=http://10.0.2.2:4100
 ```
 
 Use `http://10.0.2.2:4100` for Android emulator, or your computer LAN IP for a physical Android phone.
+
+For Codemagic/live builds, `API_URL` is set to `https://oxdigital.in/scheduler`. Use `API_URL=demo` only for offline demo APKs.

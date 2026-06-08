@@ -7,7 +7,7 @@ workflows:
     environment:
       flutter: stable
       vars:
-        API_URL: "demo"
+        API_URL: "https://oxdigital.in/scheduler"
     scripts:
       - name: Prepare Android project
         script: |
@@ -73,7 +73,7 @@ workflows:
     environment:
       flutter: stable
       vars:
-        API_URL: "demo"
+        API_URL: "https://oxdigital.in/scheduler"
     scripts:
       - name: Prepare Android project
         script: |
@@ -134,7 +134,7 @@ workflows:
     environment:
       flutter: stable
       vars:
-        API_URL: "demo"
+        API_URL: "https://oxdigital.in/scheduler"
     scripts:
       - name: Prepare Android project
         script: |
