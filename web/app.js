@@ -282,7 +282,7 @@ function desktopUsers() {
 function desktopReports() {
   const list = filteredReportMeetings();
   const m = reportMetricsFor(list);
-  return `<div class="desktop-two"><section class="desktop-panel">${reportFilters()}</section><section class="desktop-panel">${reportStats(m)}</section></div>${reportTeamSummary(list)}<section class="desktop-panel"><div class="desktop-panel-head"><h2>Filtered Timeline</h2><button class="btn small" onclick="downloadReport()">Download Report</button></div>${desktopMeetingTable(list)}</section>`;
+  return `<div class="report-top-grid"><section class="desktop-panel report-filter-panel">${reportFilters()}</section><section class="desktop-panel report-stat-panel">${reportStats(m)}</section></div>${reportTeamSummary(list)}<section class="desktop-panel"><div class="desktop-panel-head"><h2>Filtered Timeline</h2><button class="btn small" onclick="downloadReport()">Download Report</button></div>${desktopMeetingTable(list)}</section>`;
 }
 async function renderDesktopFollowups() {
   const f = await request('/api/followups');
@@ -520,7 +520,7 @@ function reportTeamSummary(list) {
   }).join('');
   const tele = reportPeople('telecaller', list, 'telecallerId', 'telecallerName');
   const sales = reportPeople('salesman', list, 'salesmanId', 'salesmanName');
-  return `<section class="desktop-panel"><div class="desktop-panel-head"><h2>Team Sale Summary</h2><p class="subtitle">Selected month/date/filter ke hisab se totals</p></div><div class="desktop-two"><div><div class="section-title">Telecaller Wise</div><div class="desktop-table team-table"><div class="desktop-table-head"><span>Name</span><span>Calls</span><span>Meetings</span><span>Sales</span><span>Revenue</span><span>Pending</span></div>${renderRows(tele, 'telecallerId') || '<p class="subtitle">No telecallers found.</p>'}</div></div><div><div class="section-title">Salesman Wise</div><div class="desktop-table team-table"><div class="desktop-table-head"><span>Name</span><span>Calls</span><span>Meetings</span><span>Sales</span><span>Revenue</span><span>Pending</span></div>${renderRows(sales, 'salesmanId') || '<p class="subtitle">No salesmen found.</p>'}</div></div></div></section>`;
+  return `<section class="desktop-panel"><div class="desktop-panel-head"><h2>Team Sale Summary</h2><p class="subtitle">Selected month/date/filter ke hisab se totals</p></div><div class="report-team-grid"><div class="report-team-card"><div class="section-title">Telecaller Wise</div><div class="desktop-table team-table"><div class="desktop-table-head"><span>Name</span><span>Calls</span><span>Meetings</span><span>Sales</span><span>Revenue</span><span>Pending</span></div>${renderRows(tele, 'telecallerId') || '<p class="subtitle">No telecallers found.</p>'}</div></div><div class="report-team-card"><div class="section-title">Salesman Wise</div><div class="desktop-table team-table"><div class="desktop-table-head"><span>Name</span><span>Calls</span><span>Meetings</span><span>Sales</span><span>Revenue</span><span>Pending</span></div>${renderRows(sales, 'salesmanId') || '<p class="subtitle">No salesmen found.</p>'}</div></div></div></section>`;
 }
 function liveLocationPanel(source = state.users.filter(u => u.role === 'salesman')) {
   const salesmen = source.filter(u => u.role === 'salesman');

@@ -354,7 +354,7 @@ textarea { resize: vertical; min-height: 82px; }
     padding: 4px 10px 24px;
     color: var(--blue);
   }
-  .desktop-brand img { width: 42px; height: auto; }
+  .desktop-brand img { width: 72px; height: auto; }
   .desktop-brand strong { font-size: 18px; }
   .desktop-sidebar nav {
     display: grid;
@@ -426,6 +426,34 @@ textarea { resize: vertical; min-height: 82px; }
   .stats {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+  .report-top-grid {
+    display: grid;
+    grid-template-columns: minmax(420px, .82fr) minmax(560px, 1fr);
+    gap: 18px;
+    align-items: start;
+  }
+  .report-filter-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 14px;
+  }
+  .report-filter-panel .field {
+    margin: 0;
+  }
+  .report-filter-panel .field:nth-child(n+3) {
+    grid-column: span 1;
+  }
+  .report-stat-panel .stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .report-stat-panel .stat {
+    min-height: 70px;
+    padding: 12px;
+  }
+  .report-stat-panel .stat b {
+    font-size: 22px;
+  }
   .desktop-panel {
     background: #fff;
     border: 1px solid var(--line);
@@ -458,13 +486,28 @@ textarea { resize: vertical; min-height: 82px; }
   .desktop-table-head,
   .desktop-table-row {
     display: grid;
-    grid-template-columns: 100px 1.4fr 1fr 1fr 120px;
+    grid-template-columns: 110px minmax(220px, 1.5fr) minmax(160px, 1fr) minmax(150px, .9fr) 130px;
     gap: 12px;
     align-items: center;
   }
+  .report-team-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .report-team-card {
+    min-width: 0;
+  }
   .team-table .desktop-table-head,
   .team-table .desktop-table-row {
-    grid-template-columns: 1.4fr 64px 84px 64px 110px 110px;
+    grid-template-columns: minmax(240px, 1.5fr) 90px 100px 80px 140px 140px;
+  }
+  .team-table .desktop-table-row {
+    min-height: 64px;
+  }
+  .team-table .desktop-table-row > span:not(:first-child),
+  .team-table .desktop-table-head > span:not(:first-child) {
+    text-align: right;
   }
   .desktop-table-head {
     color: var(--muted);
@@ -491,6 +534,9 @@ textarea { resize: vertical; min-height: 82px; }
     color: var(--muted);
     margin-top: 3px;
   }
+  .desktop-table-row b {
+    line-height: 1.2;
+  }
   .desktop-user-row {
     grid-template-columns: auto 1fr auto auto auto;
     margin-bottom: 10px;
@@ -507,5 +553,18 @@ textarea { resize: vertical; min-height: 82px; }
   }
   .modal-box {
     max-width: 760px;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1280px) {
+  .report-top-grid {
+    grid-template-columns: 1fr;
+  }
+  .report-stat-panel .stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .team-table .desktop-table-head,
+  .team-table .desktop-table-row {
+    grid-template-columns: minmax(190px, 1.4fr) 70px 86px 64px 112px 112px;
   }
 }
