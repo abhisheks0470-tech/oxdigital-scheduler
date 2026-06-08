@@ -496,6 +496,21 @@ function salesTotalsFor(list, user, key) {
     pending: sale.reduce((s,m)=>s+Number(m.result?.pendingAmount||0),0)
   };
 }
+function reportPeople(role, list, key, nameKey) {
+  const fromUsers = state.users.filter(u => u.role === role);
+  const map = new Map(fromUsers.map(u => [u.id, u]));
+  list.forEach(m => {
+    if (m[key] && !map.has(m[key])) {
+      map.set(m[key], { id: m[key], name: m[nameKey] || 'Unknown', role, avatar: String(m[nameKey] || role).split(' ').map(x => x[0]).join('').slice(0, 2).toUpperCase() });
+    }
+  });
+  state.callLogs.forEach(c => {
+    if (role === 'telecaller' && c.userId && !map.has(c.userId)) {
+      map.set(c.userId, { id: c.userId, name: c.userName || 'Unknown', role, avatar: String(c.userName || 'TC').split(' ').map(x => x[0]).join('').slice(0, 2).toUpperCase() });
+    }
+  });
+  return [...map.values()];
+}
 function reportTeamSummary(list) {
   if (state.user.role !== 'admin') return '';
   const renderRows = (users, key) => users.map(u => {
@@ -503,8 +518,8 @@ function reportTeamSummary(list) {
     const calls = key === 'telecallerId' ? filteredReportCalls().filter(c => c.userId === u.id).length : 0;
     return `<div class="desktop-table-row"><span><b>${u.name}</b><small>${u.role}</small></span><span>${calls}</span><span>${t.meetings}</span><span>${t.sales}</span><span>Rs ${rupee(t.revenue)}</span><span>Rs ${rupee(t.pending)}</span></div>`;
   }).join('');
-  const tele = state.users.filter(u => u.role === 'telecaller');
-  const sales = state.users.filter(u => u.role === 'salesman');
+  const tele = reportPeople('telecaller', list, 'telecallerId', 'telecallerName');
+  const sales = reportPeople('salesman', list, 'salesmanId', 'salesmanName');
   return `<section class="desktop-panel"><div class="desktop-panel-head"><h2>Team Sale Summary</h2><p class="subtitle">Selected month/date/filter ke hisab se totals</p></div><div class="desktop-two"><div><div class="section-title">Telecaller Wise</div><div class="desktop-table team-table"><div class="desktop-table-head"><span>Name</span><span>Calls</span><span>Meetings</span><span>Sales</span><span>Revenue</span><span>Pending</span></div>${renderRows(tele, 'telecallerId') || '<p class="subtitle">No telecallers found.</p>'}</div></div><div><div class="section-title">Salesman Wise</div><div class="desktop-table team-table"><div class="desktop-table-head"><span>Name</span><span>Calls</span><span>Meetings</span><span>Sales</span><span>Revenue</span><span>Pending</span></div>${renderRows(sales, 'salesmanId') || '<p class="subtitle">No salesmen found.</p>'}</div></div></div></section>`;
 }
 function liveLocationPanel(source = state.users.filter(u => u.role === 'salesman')) {

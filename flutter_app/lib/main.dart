@@ -1452,13 +1452,34 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ),
         if (widget.user['role'] == 'admin') ...[
           section('Telecaller Wise Sale'),
-          for (final u in widget.users.where((u) => u['role'] == 'telecaller'))
+          for (final u in reportPeople(
+            widget.users,
+            list,
+            filteredCalls,
+            'telecaller',
+            'telecallerId',
+            'telecallerName',
+          ))
             saleSummaryTile(Map<String, dynamic>.from(u), list, 'telecallerId'),
           section('Telecaller Wise Calls'),
-          for (final u in widget.users.where((u) => u['role'] == 'telecaller'))
+          for (final u in reportPeople(
+            widget.users,
+            list,
+            filteredCalls,
+            'telecaller',
+            'telecallerId',
+            'telecallerName',
+          ))
             callSummaryTile(Map<String, dynamic>.from(u), filteredCalls),
           section('Salesman Wise Sale'),
-          for (final u in widget.users.where((u) => u['role'] == 'salesman'))
+          for (final u in reportPeople(
+            widget.users,
+            list,
+            filteredCalls,
+            'salesman',
+            'salesmanId',
+            'salesmanName',
+          ))
             saleSummaryTile(Map<String, dynamic>.from(u), list, 'salesmanId'),
         ],
         section('Filtered Timeline'),
@@ -1761,6 +1782,57 @@ Widget metric(String label, dynamic value, [Color color = blue]) => Card(
     ),
   ),
 );
+List<Map<String, dynamic>> reportPeople(
+  List users,
+  List<Map<String, dynamic>> meetings,
+  List<Map<String, dynamic>> callLogs,
+  String role,
+  String key,
+  String nameKey,
+) {
+  final people = <String, Map<String, dynamic>>{};
+  for (final raw in users) {
+    final u = Map<String, dynamic>.from(raw);
+    if (u['role'] == role && u['id'] != null) people[u['id']] = u;
+  }
+  for (final m in meetings) {
+    final id = m[key];
+    if (id != null && !people.containsKey(id)) {
+      final name = m[nameKey] ?? 'Unknown';
+      people[id] = {
+        'id': id,
+        'name': name,
+        'role': role,
+        'avatar': initials(name),
+      };
+    }
+  }
+  if (role == 'telecaller') {
+    for (final c in callLogs) {
+      final id = c['userId'];
+      if (id != null && !people.containsKey(id)) {
+        final name = c['userName'] ?? 'Unknown';
+        people[id] = {
+          'id': id,
+          'name': name,
+          'role': role,
+          'avatar': initials(name),
+        };
+      }
+    }
+  }
+  return people.values.toList();
+}
+
+String initials(dynamic value) => '$value'
+    .split(' ')
+    .where((p) => p.isNotEmpty)
+    .map((p) => p[0])
+    .join()
+    .padRight(2, 'X')
+    .substring(0, 2)
+    .toUpperCase();
+
 Widget saleSummaryTile(
   Map<String, dynamic> user,
   List<Map<String, dynamic>> meetings,
