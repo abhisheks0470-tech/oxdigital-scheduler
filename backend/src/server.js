@@ -306,7 +306,12 @@ async function api(req, res, url) {
 
 http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') return json(res, 204, {});
-  const url = normalizePath(parseUrl(req));
+  const rawUrl = parseUrl(req);
+  if (BASE_PATH && BASE_PATH !== '/' && rawUrl.pathname === BASE_PATH) {
+    res.writeHead(302, { Location: `${BASE_PATH}/${rawUrl.search}` });
+    return res.end();
+  }
+  const url = normalizePath(rawUrl);
   if (url.pathname.startsWith('/api/')) return api(req, res, url).catch((err) => json(res, 500, { error: err.message }));
   if (url.pathname.startsWith('/uploads/')) {
     const file = path.normalize(path.join(uploadRoot, url.pathname.replace('/uploads/', '')));

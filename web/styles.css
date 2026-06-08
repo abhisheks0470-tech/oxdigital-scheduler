@@ -320,25 +320,186 @@ textarea { resize: vertical; min-height: 82px; }
 }
 
 @media (min-width: 900px) {
-  .shell {
-    max-width: none;
-    padding: 24px;
-  }
-  .phone-grid {
-    grid-template-columns: 360px minmax(520px, 1fr);
-  }
-  .phone {
-    min-height: calc(100vh - 48px);
-    border-radius: 14px;
+  body {
+    background: #eef3f7;
   }
   .phone.single {
     max-width: 430px;
   }
-  .bottom-nav {
-    position: static;
+  .desktop-app {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 24px;
+    padding: 28px;
+  }
+  .desktop-sidebar {
+    position: fixed;
+    left: 28px;
+    top: 28px;
+    bottom: 28px;
+    width: 260px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 22px 16px;
+    display: flex;
+    flex-direction: column;
+  }
+  .desktop-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 10px 24px;
+    color: var(--blue);
+  }
+  .desktop-brand img { width: 42px; height: auto; }
+  .desktop-brand strong { font-size: 18px; }
+  .desktop-sidebar nav {
+    display: grid;
+    gap: 8px;
+  }
+  .desktop-sidebar nav button {
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    align-items: center;
+    min-height: 46px;
+    border: 0;
+    border-radius: 10px;
+    padding: 0 14px;
+    background: transparent;
+    color: #344054;
+    text-align: left;
+    font-weight: 700;
+  }
+  .desktop-sidebar nav button.active {
+    background: #e9f3ff;
+    color: var(--blue);
+  }
+  .desktop-user {
+    margin-top: auto;
+    border-top: 1px solid var(--line);
+    padding: 16px 10px 0;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .desktop-user span {
+    display: block;
+    color: var(--muted);
+    font-size: 12px;
+    text-transform: capitalize;
+  }
+  .desktop-main {
+    grid-column: 2;
+    min-width: 0;
+  }
+  .desktop-header {
+    min-height: 92px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .desktop-header p {
+    margin: 0 0 4px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .desktop-header h1 {
+    margin: 0;
+    font-size: 28px;
+    color: var(--ink);
+  }
+  .desktop-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
   }
   .stats {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .desktop-panel {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 18px;
+    margin-bottom: 18px;
+  }
+  .desktop-panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .desktop-panel-head h2 {
+    margin: 0;
+    font-size: 17px;
+  }
+  .desktop-two {
+    display: grid;
+    grid-template-columns: minmax(360px, .9fr) minmax(520px, 1.1fr);
+    gap: 18px;
+    align-items: start;
+  }
+  .desktop-table {
+    display: grid;
+    gap: 8px;
+  }
+  .desktop-table-head,
+  .desktop-table-row {
+    display: grid;
+    grid-template-columns: 100px 1.4fr 1fr 1fr 120px;
+    gap: 12px;
+    align-items: center;
+  }
+  .desktop-table-head {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 900;
+    padding: 0 14px 6px;
+    text-transform: uppercase;
+  }
+  .desktop-table-row {
+    width: 100%;
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 10px;
+    padding: 13px 14px;
+    color: var(--ink);
+    text-align: left;
+  }
+  .desktop-table-row:hover {
+    border-color: #b7d5ee;
+    background: #f8fbff;
+  }
+  .desktop-table-row small {
+    display: block;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+  .desktop-user-row {
+    grid-template-columns: auto 1fr auto auto auto;
+    margin-bottom: 10px;
+  }
+  .desktop-booking {
+    max-width: 920px;
+  }
+  .calendar {
+    border-radius: 12px;
+  }
+  .desktop-seg {
+    margin: 0;
+    width: 260px;
   }
   .modal-box {
     max-width: 760px;
