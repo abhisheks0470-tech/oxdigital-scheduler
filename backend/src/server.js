@@ -59,6 +59,7 @@ const dbVersion = (db) => Math.max(
   0,
   ...db.meetings.map((m) => new Date(m.updatedAt || m.createdAt || 0).getTime()),
   ...db.users.map((u) => new Date(u.updatedAt || u.createdAt || 0).getTime()),
+  ...(db.callLogs || []).map((c) => new Date(c.createdAt || 0).getTime()),
   ...db.notifications.map((n) => new Date(n.createdAt || 0).getTime())
 );
 
@@ -66,6 +67,12 @@ function scopedMeetings(db, user) {
   if (user.role === 'admin') return db.meetings;
   if (user.role === 'telecaller') return db.meetings.filter((m) => m.telecallerId === user.id);
   return db.meetings.filter((m) => m.salesmanId === user.id);
+}
+
+function scopedCallLogs(db, user) {
+  const logs = db.callLogs || [];
+  if (user.role === 'admin') return logs;
+  return logs.filter((c) => c.userId === user.id);
 }
 
 function enrichMeeting(db, m) {
@@ -83,9 +90,10 @@ function hasSlotConflict(db, salesmanId, meetingAt, excludeId) {
   return { conflict, blockedStart: blockedStart.toISOString(), blockedEnd: blockedEnd.toISOString() };
 }
 
-function metrics(meetings, db) {
+function metrics(meetings, db, user) {
   const today = new Date();
   const saleDone = meetings.filter((m) => m.status === 'sale-done');
+  const callLogs = user ? scopedCallLogs(db, user) : (db.callLogs || []);
   return {
     totalTelecallers: db.users.filter((u) => u.role === 'telecaller').length,
     totalSalesmen: db.users.filter((u) => u.role === 'salesman').length,
@@ -96,6 +104,8 @@ function metrics(meetings, db) {
     cancelledMeetings: meetings.filter((m) => ['cancelled', 'not-interested'].includes(m.status)).length,
     saleDoneMeetings: saleDone.length,
     followUps: meetings.filter((m) => m.status === 'follow-up').length,
+    callsToday: callLogs.filter((c) => sameDay(c.createdAt, today)).length,
+    totalCalls: callLogs.length,
     pendingPayments: saleDone.reduce((sum, m) => sum + money(m.result?.pendingAmount), 0),
     revenue: saleDone.reduce((sum, m) => sum + money(m.result?.totalAmount), 0),
     received: saleDone.reduce((sum, m) => sum + money(m.result?.receivedAmount), 0)
@@ -141,8 +151,9 @@ async function api(req, res, url) {
       version: dbVersion(db),
       user: publicUser(user),
       settings: db.settings,
-      metrics: metrics(meetings, db),
+      metrics: metrics(meetings, db, user),
       meetings,
+      callLogs: scopedCallLogs(db, user),
       users: user.role === 'admin'
         ? db.users.map(publicUser)
         : db.users.filter((u) => u.status === 'active' && ['salesman', 'telecaller'].includes(u.role)).map(publicUser),
@@ -176,7 +187,7 @@ async function api(req, res, url) {
   if (req.method === 'GET' && url.pathname === '/api/dashboard') {
     const meetings = scopedMeetings(db, user);
     return json(res, 200, {
-      metrics: metrics(meetings, db),
+      metrics: metrics(meetings, db, user),
       meetings: meetings.map((m) => enrichMeeting(db, m)).sort((a, b) => new Date(a.meetingAt) - new Date(b.meetingAt)).slice(0, 12),
       performance: db.users.filter((u) => ['telecaller', 'salesman'].includes(u.role)).map((u) => ({ user: publicUser(u), meetings: db.meetings.filter((m) => m.telecallerId === u.id || m.salesmanId === u.id).length, sales: db.meetings.filter((m) => (m.telecallerId === u.id || m.salesmanId === u.id) && m.status === 'sale-done').length }))
     });
@@ -191,6 +202,35 @@ async function api(req, res, url) {
     if (status) list = list.filter((m) => m.status === status);
     if (date) list = list.filter((m) => dateOnly(m.meetingAt) === date);
     return json(res, 200, { meetings: list.map((m) => enrichMeeting(db, m)) });
+  }
+  if (req.method === 'GET' && url.pathname === '/api/call-logs') {
+    let logs = scopedCallLogs(db, user);
+    const from = url.searchParams.get('from');
+    const to = url.searchParams.get('to');
+    const userFilter = url.searchParams.get('userId');
+    if (from) logs = logs.filter((c) => dateOnly(c.createdAt) >= from);
+    if (to) logs = logs.filter((c) => dateOnly(c.createdAt) <= to);
+    if (userFilter && user.role === 'admin') logs = logs.filter((c) => c.userId === userFilter);
+    return json(res, 200, { callLogs: logs });
+  }
+  if (req.method === 'POST' && url.pathname === '/api/call-logs') {
+    const input = await body(req);
+    const meeting = db.meetings.find((m) => m.id === input.meetingId);
+    const log = {
+      id: id('call'),
+      userId: user.id,
+      userName: user.name,
+      role: user.role,
+      meetingId: input.meetingId || null,
+      customerName: meeting?.customerName || input.customerName || '',
+      phone: input.phone || meeting?.mobile || '',
+      source: input.source || 'crm-call-button',
+      createdAt: now()
+    };
+    db.callLogs ||= [];
+    db.callLogs.push(log);
+    save(db);
+    return json(res, 201, { callLog: log });
   }
   if (req.method === 'POST' && url.pathname === '/api/meetings') {
     if (!['admin', 'telecaller'].includes(user.role)) return json(res, 403, { error: 'Only admin or telecaller can book meetings' });
@@ -265,7 +305,11 @@ async function api(req, res, url) {
     if (salesman) list = list.filter((m) => m.salesmanId === salesman);
     if (status) list = list.filter((m) => m.status === status);
     if (service) list = list.filter((m) => m.interestedService === service);
-    return json(res, 200, { metrics: metrics(list, db), meetings: list.map((m) => enrichMeeting(db, m)) });
+    let logs = scopedCallLogs(db, user);
+    if (from) logs = logs.filter((c) => dateOnly(c.createdAt) >= from);
+    if (to) logs = logs.filter((c) => dateOnly(c.createdAt) <= to);
+    if (telecaller) logs = logs.filter((c) => c.userId === telecaller);
+    return json(res, 200, { metrics: metrics(list, db, user), meetings: list.map((m) => enrichMeeting(db, m)), callLogs: logs });
   }
   if (req.method === 'POST' && url.pathname === '/api/uploads') {
     const input = await body(req);

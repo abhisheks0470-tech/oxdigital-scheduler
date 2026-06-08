@@ -275,5 +275,18 @@
       "Bank Transfer"
     ],
     "brandingLogo": "/assets/oxdigital-logo.svg"
-  }
+  },
+  "callLogs": [
+    {
+      "id": "call_d63c6663dbd8",
+      "userId": "usr_telecaller",
+      "userName": "Priya Sharma",
+      "role": "telecaller",
+      "meetingId": "mtg_amit",
+      "customerName": "Amit Enterprises",
+      "phone": "9876543210",
+      "source": "crm-call-button",
+      "createdAt": "2026-06-08T18:00:47.021Z"
+    }
+  ]
 }

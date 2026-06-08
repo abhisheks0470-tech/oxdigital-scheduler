@@ -29,6 +29,7 @@ class _OxDigitalAppState extends State<OxDigitalApp> {
   Map<String, dynamic>? user;
   Map<String, dynamic>? dashboard;
   List meetings = [];
+  List callLogs = [];
   List users = [];
   String view = 'dashboard';
   Timer? syncTimer;
@@ -63,6 +64,7 @@ class _OxDigitalAppState extends State<OxDigitalApp> {
     setState(() {
       dashboard = data[0];
       meetings = data[1]['meetings'];
+      callLogs = data[0]['callLogs'] ?? callLogs;
       users = data[2]['users'];
     });
   }
@@ -75,6 +77,7 @@ class _OxDigitalAppState extends State<OxDigitalApp> {
       user = data['user'];
       dashboard = {'metrics': data['metrics'], 'meetings': data['meetings']};
       meetings = data['meetings'];
+      callLogs = data['callLogs'] ?? [];
       users = data['users'];
     });
   }
@@ -133,6 +136,7 @@ class _OxDigitalAppState extends State<OxDigitalApp> {
               user: user!,
               dashboard: dashboard,
               meetings: meetings,
+              callLogs: callLogs,
               users: users,
               view: view,
               api: api,
@@ -305,6 +309,7 @@ class DemoApi {
       'usr_salesman',
     ),
   ];
+  static final callLogs = <Map<String, dynamic>>[];
 
   static Map<String, dynamic> _meeting(
     String id,
@@ -394,6 +399,24 @@ class DemoApi {
       meetings.add(m);
       return {'meeting': m};
     }
+    if (path == '/api/call-logs') {
+      final meeting = meetings.firstWhere(
+        (m) => m['id'] == body['meetingId'],
+        orElse: () => {},
+      );
+      final log = {
+        'id': 'call_${DateTime.now().millisecondsSinceEpoch}',
+        'userId': user?['id'] ?? 'usr_telecaller',
+        'userName': user?['name'] ?? 'Priya Sharma',
+        'role': user?['role'] ?? 'telecaller',
+        'meetingId': body['meetingId'],
+        'customerName': meeting['customerName'] ?? body['customerName'] ?? '',
+        'phone': body['phone'] ?? meeting['mobile'] ?? '',
+        'createdAt': DateTime.now().toIso8601String(),
+      };
+      callLogs.add(log);
+      return {'callLog': log};
+    }
     return {};
   }
 
@@ -419,9 +442,29 @@ class DemoApi {
   static Map<String, dynamic> get(String path, Map<String, dynamic>? user) {
     if (path == '/api/me')
       return {'user': user ?? users[1], 'settings': settings};
+    if (path == '/api/sync') {
+      final activeUser = user ?? users[1];
+      final list = scopedMeetings(activeUser);
+      return {
+        'version': DateTime.now().millisecondsSinceEpoch,
+        'user': activeUser,
+        'settings': settings,
+        'metrics': metrics(list, activeUser),
+        'meetings': list,
+        'callLogs': scopedCallLogs(activeUser),
+        'users': activeUser['role'] == 'admin'
+            ? users
+            : users
+                  .where((u) => ['salesman', 'telecaller'].contains(u['role']))
+                  .toList(),
+        'notifications': [],
+      };
+    }
     if (path == '/api/users') return {'users': users};
     if (path.startsWith('/api/meetings'))
       return {'meetings': scopedMeetings(user)};
+    if (path.startsWith('/api/call-logs'))
+      return {'callLogs': scopedCallLogs(user)};
     if (path.startsWith('/api/slots'))
       return {
         'slots': List.generate(10, (i) {
@@ -443,7 +486,12 @@ class DemoApi {
       };
     if (path == '/api/dashboard') {
       final list = scopedMeetings(user);
-      return {'metrics': metrics(list), 'meetings': list, 'performance': []};
+      return {
+        'metrics': metrics(list, user),
+        'meetings': list,
+        'callLogs': scopedCallLogs(user),
+        'performance': [],
+      };
     }
     if (path == '/api/followups') {
       final list = scopedMeetings(
@@ -454,7 +502,15 @@ class DemoApi {
     return {'settings': settings};
   }
 
-  static Map<String, dynamic> metrics(List<Map<String, dynamic>> list) => {
+  static List<Map<String, dynamic>> scopedCallLogs(Map<String, dynamic>? user) {
+    if (user == null || user['role'] == 'admin') return callLogs;
+    return callLogs.where((c) => c['userId'] == user['id']).toList();
+  }
+
+  static Map<String, dynamic> metrics(
+    List<Map<String, dynamic>> list,
+    Map<String, dynamic>? user,
+  ) => {
     'totalMeetings': list.length,
     'todayMeetings': list
         .where((m) => DateTime.parse(m['meetingAt']).day == DateTime.now().day)
@@ -464,6 +520,10 @@ class DemoApi {
     'cancelledMeetings': list.where((m) => m['status'] == 'cancelled').length,
     'saleDoneMeetings': list.where((m) => m['status'] == 'sale-done').length,
     'followUps': list.where((m) => m['status'] == 'follow-up').length,
+    'callsToday': scopedCallLogs(user)
+        .where((c) => DateTime.parse(c['createdAt']).day == DateTime.now().day)
+        .length,
+    'totalCalls': scopedCallLogs(user).length,
     'pendingPayments': 10000,
     'revenue': 25000,
   };
@@ -587,6 +647,7 @@ class Shell extends StatelessWidget {
     required this.user,
     required this.dashboard,
     required this.meetings,
+    required this.callLogs,
     required this.users,
     required this.view,
     required this.api,
@@ -597,6 +658,7 @@ class Shell extends StatelessWidget {
   final Map<String, dynamic> user;
   final Map<String, dynamic>? dashboard;
   final List meetings;
+  final List callLogs;
   final List users;
   final String view;
   final ApiClient api;
@@ -626,6 +688,7 @@ class Shell extends StatelessWidget {
         user: user,
         users: users,
         meetings: meetings,
+        callLogs: callLogs,
         onOpen: (m) => openMeeting(context, m),
       );
     } else if (view == 'users') {
@@ -1058,7 +1121,17 @@ class MeetingDetails extends StatelessWidget {
           spacing: 8,
           children: [
             OutlinedButton.icon(
-              onPressed: () => openExternal('tel:${meeting['mobile']}'),
+              onPressed: () async {
+                await api
+                    .post('/api/call-logs', {
+                      'meetingId': meeting['id'],
+                      'phone': meeting['mobile'],
+                      'customerName': meeting['customerName'],
+                    })
+                    .catchError((_) => <String, dynamic>{});
+                await openExternal('tel:${meeting['mobile']}');
+                await onUpdated();
+              },
               icon: const Icon(Icons.call),
               label: const Text('Call'),
             ),
@@ -1271,11 +1344,13 @@ class ReportsScreen extends StatefulWidget {
     required this.user,
     required this.users,
     required this.meetings,
+    required this.callLogs,
     required this.onOpen,
   });
   final Map<String, dynamic> user;
   final List users;
   final List meetings;
+  final List callLogs;
   final ValueChanged<Map> onOpen;
   @override
   State<ReportsScreen> createState() => _ReportsScreenState();
@@ -1303,6 +1378,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final sale = list.where((m) => m['status'] == 'sale-done').toList();
     return {
       'totalMeetings': list.length,
+      'calls': filteredCalls.length,
       'completedMeetings': list.where((m) => m['status'] == 'completed').length,
       'saleDoneMeetings': sale.length,
       'followUps': list.where((m) => m['status'] == 'follow-up').length,
@@ -1312,6 +1388,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
         (s, m) => s + resultMoney(m, 'pendingAmount'),
       ),
     };
+  }
+
+  List<Map<String, dynamic>> get filteredCalls {
+    return widget.callLogs.map((c) => Map<String, dynamic>.from(c)).where((c) {
+      final d = DateTime.parse(c['createdAt']);
+      final day = DateTime(d.year, d.month, d.day);
+      final fromDay = from == null
+          ? null
+          : DateTime(from!.year, from!.month, from!.day);
+      final toDay = to == null ? null : DateTime(to!.year, to!.month, to!.day);
+      return (fromDay == null || !day.isBefore(fromDay)) &&
+          (toDay == null || !day.isAfter(toDay));
+    }).toList();
   }
 
   @override
@@ -1353,6 +1442,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           mainAxisSpacing: 10,
           children: [
             metric('Total Meetings', m['totalMeetings']),
+            metric('Calls', m['calls']),
             metric('Completed', m['completedMeetings'], green),
             metric('Sale Done', m['saleDoneMeetings'], purple),
             metric('Follow-ups', m['followUps'], amber),
@@ -1364,6 +1454,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
           section('Telecaller Wise Sale'),
           for (final u in widget.users.where((u) => u['role'] == 'telecaller'))
             saleSummaryTile(Map<String, dynamic>.from(u), list, 'telecallerId'),
+          section('Telecaller Wise Calls'),
+          for (final u in widget.users.where((u) => u['role'] == 'telecaller'))
+            callSummaryTile(Map<String, dynamic>.from(u), filteredCalls),
           section('Salesman Wise Sale'),
           for (final u in widget.users.where((u) => u['role'] == 'salesman'))
             saleSummaryTile(Map<String, dynamic>.from(u), list, 'salesmanId'),
@@ -1690,6 +1783,21 @@ Widget saleSummaryTile(
       subtitle: Text(
         'Meetings: ${owned.length}  Sales: ${sale.length}\nRevenue: Rs $revenue  Pending: Rs $pending',
       ),
+    ),
+  );
+}
+
+Widget callSummaryTile(
+  Map<String, dynamic> user,
+  List<Map<String, dynamic>> callLogs,
+) {
+  final calls = callLogs.where((c) => c['userId'] == user['id']).length;
+  return Card(
+    child: ListTile(
+      leading: CircleAvatar(child: Text(user['avatar'] ?? 'OX')),
+      title: Text(user['name'] ?? ''),
+      subtitle: Text('Calls: $calls'),
+      trailing: const Icon(Icons.call),
     ),
   );
 }

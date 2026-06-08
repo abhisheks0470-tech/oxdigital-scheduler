@@ -5,7 +5,7 @@ const logo = `${assetBase}/assets/oxdigital-logo.svg`;
 const DEMO_MODE = window.location.protocol === 'file:' || new URLSearchParams(window.location.search).get('demo') === '1';
 const services = ['Google Ads', 'Facebook/Instagram Ads', 'Website Development', 'Social Media Management', 'Google Business Profile', 'Complete Digital Marketing'];
 const statusLabels = { 'upcoming': 'Upcoming', 'completed': 'Completed', 'sale-done': 'Sale Done', 'follow-up': 'Follow-up', 'cancelled': 'Cancelled', 'not-interested': 'Not Interested', 'wrong-lead': 'Wrong Lead', 'client-not-available': 'Client Not Available', 'need-revisit': 'Need Revisit' };
-const state = { token: localStorage.oxToken || '', user: null, settings: null, dashboard: null, meetings: [], users: [], selectedRole: 'telecaller', booking: { step: 1 }, view: 'dashboard', calendarDate: new Date(), report: { from: '', to: '', telecallerId: '', salesmanId: '', status: '', service: '' } };
+const state = { token: localStorage.oxToken || '', user: null, settings: null, dashboard: null, meetings: [], callLogs: [], users: [], selectedRole: 'telecaller', booking: { step: 1 }, view: 'dashboard', calendarDate: new Date(), report: { from: '', to: '', telecallerId: '', salesmanId: '', status: '', service: '' } };
 window.state = state;
 let syncTimer = null;
 let lastVersion = 0;
@@ -50,6 +50,7 @@ const demoDb = {
     { id: 'usr_salesman2', name: 'Vikram Singh', mobile: '9000000004', email: 'vikram@oxdigital.in', role: 'salesman', status: 'active', avatar: 'VS', currentLocation: { lat: 22.7533, lng: 75.8937, label: 'Palasia, Indore', updatedAt: new Date().toISOString() } }
   ],
   meetings: [],
+  callLogs: [],
   notifications: [],
   settings: { companyName: 'OxDigital', workingHours: { start: '09:00', end: '19:00' }, meetingBufferMinutes: 60 }
 };
@@ -77,12 +78,13 @@ function demoScopedMeetings(user = demoUser()) {
 }
 function demoMetrics(list) {
   const sale = list.filter(m => m.status === 'sale-done');
-  return { totalTelecallers: demoDb.users.filter(u => u.role === 'telecaller').length, totalSalesmen: demoDb.users.filter(u => u.role === 'salesman').length, totalMeetings: list.length, todayMeetings: list.length, upcomingMeetings: list.filter(m => m.status === 'upcoming').length, completedMeetings: list.filter(m => m.status === 'completed').length, cancelledMeetings: list.filter(m => ['cancelled','not-interested'].includes(m.status)).length, saleDoneMeetings: sale.length, followUps: list.filter(m => m.status === 'follow-up').length, pendingPayments: sale.reduce((s,m)=>s+Number(m.result?.pendingAmount||0),0), revenue: sale.reduce((s,m)=>s+Number(m.result?.totalAmount||0),0), received: sale.reduce((s,m)=>s+Number(m.result?.receivedAmount||0),0) };
+  const logs = demoDb.callLogs.filter(c => demoUser().role === 'admin' || c.userId === demoUser().id);
+  return { totalTelecallers: demoDb.users.filter(u => u.role === 'telecaller').length, totalSalesmen: demoDb.users.filter(u => u.role === 'salesman').length, totalMeetings: list.length, todayMeetings: list.length, upcomingMeetings: list.filter(m => m.status === 'upcoming').length, completedMeetings: list.filter(m => m.status === 'completed').length, cancelledMeetings: list.filter(m => ['cancelled','not-interested'].includes(m.status)).length, saleDoneMeetings: sale.length, followUps: list.filter(m => m.status === 'follow-up').length, callsToday: logs.filter(c => new Date(c.createdAt).toDateString() === new Date().toDateString()).length, totalCalls: logs.length, pendingPayments: sale.reduce((s,m)=>s+Number(m.result?.pendingAmount||0),0), revenue: sale.reduce((s,m)=>s+Number(m.result?.totalAmount||0),0), received: sale.reduce((s,m)=>s+Number(m.result?.receivedAmount||0),0) };
 }
 function demoSyncPayload() {
   const user = demoUser();
   const meetings = demoScopedMeetings(user);
-  return { version: Date.now(), user, settings: demoDb.settings, metrics: demoMetrics(meetings), meetings, users: user.role === 'admin' ? demoDb.users : demoDb.users.filter(u => ['salesman','telecaller'].includes(u.role)), notifications: demoDb.notifications };
+  return { version: Date.now(), user, settings: demoDb.settings, metrics: demoMetrics(meetings), meetings, callLogs: demoDb.callLogs.filter(c => user.role === 'admin' || c.userId === user.id), users: user.role === 'admin' ? demoDb.users : demoDb.users.filter(u => ['salesman','telecaller'].includes(u.role)), notifications: demoDb.notifications };
 }
 async function demoRequest(path, options = {}) {
   demoInit();
@@ -115,6 +117,13 @@ async function demoRequest(path, options = {}) {
     const m = { id: `mtg_${Date.now()}`, status: 'upcoming', telecallerId: demoUser().id, telecallerName: demoUser().name, salesmanName: salesman?.name || 'Salesman', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), blockedStart: new Date(new Date(meetingAt).getTime() - 3600000).toISOString(), blockedEnd: new Date(new Date(meetingAt).getTime() + 3600000).toISOString(), ...input };
     demoDb.meetings.push(m); return { meeting: m };
   }
+  if (path === '/api/call-logs' && method === 'POST') {
+    const meeting = demoDb.meetings.find(m => m.id === input.meetingId);
+    const log = { id: `call_${Date.now()}`, userId: demoUser().id, userName: demoUser().name, role: demoUser().role, meetingId: input.meetingId || null, customerName: meeting?.customerName || input.customerName || '', phone: input.phone || meeting?.mobile || '', source: 'crm-call-button', createdAt: new Date().toISOString() };
+    demoDb.callLogs.push(log);
+    return { callLog: log };
+  }
+  if (path.startsWith('/api/call-logs') && method === 'GET') return { callLogs: demoDb.callLogs.filter(c => demoUser().role === 'admin' || c.userId === demoUser().id) };
   if (path.startsWith('/api/slots')) {
     return { slots: Array.from({ length: 10 }, (_, i) => { const h = i + 9; const at = new Date(); at.setHours(h,0,0,0); const blocked = [10,11,12,15].includes(h); return { time: `${String(h).padStart(2,'0')}:00`, meetingAt: at.toISOString(), available: !blocked, status: blocked ? 'blocked' : 'available' }; }) };
   }
@@ -201,6 +210,7 @@ async function syncNow(quiet = true) {
     state.settings = data.settings;
     state.dashboard = { metrics: data.metrics, meetings: data.meetings.slice(0, 12), performance: state.dashboard?.performance || [] };
     state.meetings = data.meetings;
+    state.callLogs = data.callLogs || [];
     state.users = data.users;
     if (changed && quiet && !$('.modal')) render();
   } catch (err) {
@@ -249,7 +259,7 @@ function desktopDashboard() {
   const metrics = state.user.role === 'admin'
     ? [['Today Meetings',m.todayMeetings],['Upcoming',m.upcomingMeetings,'green'],['Completed',m.completedMeetings,'green'],['Sale Done',m.saleDoneMeetings,'purple'],['Follow-ups',m.followUps,'yellow'],['Pending Payments',rupee(m.pendingPayments),'red'],['Revenue',rupee(m.revenue),'green'],['Telecallers',m.totalTelecallers],['Salesmen',m.totalSalesmen]]
     : state.user.role === 'telecaller'
-      ? [['Today Booked',m.todayMeetings],['Upcoming',m.upcomingMeetings,'green'],['Follow-ups',m.followUps,'yellow'],['Sale Done',m.saleDoneMeetings,'purple'],['Cancelled',m.cancelledMeetings,'red'],['Pending Payments',rupee(m.pendingPayments),'red']]
+      ? [['Today Booked',m.todayMeetings],['Calls Today',m.callsToday || 0],['Upcoming',m.upcomingMeetings,'green'],['Follow-ups',m.followUps,'yellow'],['Sale Done',m.saleDoneMeetings,'purple'],['Cancelled',m.cancelledMeetings,'red'],['Pending Payments',rupee(m.pendingPayments),'red']]
       : [['Today Meetings',m.todayMeetings],['Upcoming',m.upcomingMeetings,'green'],['Completed',m.completedMeetings,'green'],['Pending',m.upcomingMeetings,'yellow'],['Sale Done',m.saleDoneMeetings,'purple'],['Follow-ups',m.followUps,'yellow']];
   const timeline = state.user.role === 'admin' && (state.report.from || state.report.to || state.report.status || state.report.service || state.report.salesmanId || state.report.telecallerId)
     ? filteredReportMeetings()
@@ -319,7 +329,7 @@ function renderSalesman() {
 }
 function stat(label, value, cls = '') { return `<div class="stat ${cls}"><b>${value}</b><span>${label}</span></div>`; }
 function meetingList(title, meetings, actions = false) {
-  return `<div class="section-title"><span>${title}</span><a onclick="go('calendar')">View All</a></div><div class="list">${meetings.map(m => `<div class="row-card" onclick="openMeeting('${m.id}')"><div class="meeting-time">${fmtTime(m.meetingAt)}</div><div><b>${m.customerName}</b><p class="subtitle">${m.interestedService}<br>${m.salesmanName}</p>${actions ? `<div class="actions" onclick="event.stopPropagation()"><a class="btn small ghost" href="${telUrl(m.mobile)}">☎ Call</a><a class="btn small ghost" target="_blank" href="${waUrl(m.whatsapp || m.mobile)}">◉ WhatsApp</a><a class="btn small green" target="_blank" href="${mapUrl(m.mapLocation || m.address)}">➤ Navigate</a></div>` : ''}</div>${statusBadge(m.status)}</div>`).join('') || '<p class="subtitle">No meetings yet.</p>'}</div>`;
+  return `<div class="section-title"><span>${title}</span><a onclick="go('calendar')">View All</a></div><div class="list">${meetings.map(m => `<div class="row-card" onclick="openMeeting('${m.id}')"><div class="meeting-time">${fmtTime(m.meetingAt)}</div><div><b>${m.customerName}</b><p class="subtitle">${m.interestedService}<br>${m.salesmanName}</p>${actions ? `<div class="actions" onclick="event.stopPropagation()"><a class="btn small ghost" onclick="logCall('${m.id}','${m.mobile}')" href="${telUrl(m.mobile)}">☎ Call</a><a class="btn small ghost" target="_blank" href="${waUrl(m.whatsapp || m.mobile)}">◉ WhatsApp</a><a class="btn small green" target="_blank" href="${mapUrl(m.mapLocation || m.address)}">➤ Navigate</a></div>` : ''}</div>${statusBadge(m.status)}</div>`).join('') || '<p class="subtitle">No meetings yet.</p>'}</div>`;
 }
 async function renderBooking() {
   const b = state.booking;
@@ -394,7 +404,10 @@ function openMeeting(id) {
     <div class="row-card"><div class="avatar">${m.telecallerName[0]}</div><div>Telecaller<br><b>${m.telecallerName}</b></div><span></span></div>
     <div class="row-card"><div class="avatar">${m.salesmanName[0]}</div><div>Salesman<br><b>${m.salesmanName}</b></div><span></span></div>
     ${result}
-  </div><div class="actions" style="margin-top:14px"><a class="btn small ghost" href="${telUrl(m.mobile)}">☎ Call</a><a class="btn small ghost" target="_blank" href="${waUrl(m.whatsapp || m.mobile)}">◉ WhatsApp</a><a class="btn small green" target="_blank" href="${mapUrl(m.mapLocation || m.address)}">➤ Navigate</a>${salesmanActions}</div>`);
+  </div><div class="actions" style="margin-top:14px"><a class="btn small ghost" onclick="logCall('${m.id}','${m.mobile}')" href="${telUrl(m.mobile)}">☎ Call</a><a class="btn small ghost" target="_blank" href="${waUrl(m.whatsapp || m.mobile)}">◉ WhatsApp</a><a class="btn small green" target="_blank" href="${mapUrl(m.mapLocation || m.address)}">➤ Navigate</a>${salesmanActions}</div>`);
+}
+async function logCall(meetingId, phone) {
+  request('/api/call-logs', { method: 'POST', body: JSON.stringify({ meetingId, phone }) }).then(() => syncNow(true)).catch(() => {});
 }
 function updateModal(id) {
   showModal(`<h3>Update Meeting</h3><form onsubmit="saveResult(event,'${id}')"><div class="field"><label>Select Status</label><select class="select" name="status" onchange="resultFields(this.value)">
@@ -460,9 +473,18 @@ function filteredReportMeetings() {
       && (!state.report.service || m.interestedService === state.report.service);
   });
 }
+function filteredReportCalls() {
+  return state.callLogs.filter(c => {
+    const d = new Date(c.createdAt).toISOString().slice(0, 10);
+    return (!state.report.from || d >= state.report.from)
+      && (!state.report.to || d <= state.report.to)
+      && (!state.report.telecallerId || c.userId === state.report.telecallerId);
+  });
+}
 function reportMetricsFor(list) {
   const sale = list.filter(m => m.status === 'sale-done');
-  return { totalMeetings: list.length, completedMeetings: list.filter(m => m.status === 'completed').length, saleDoneMeetings: sale.length, followUps: list.filter(m => m.status === 'follow-up').length, revenue: sale.reduce((s,m)=>s+Number(m.result?.totalAmount||0),0), pendingPayments: sale.reduce((s,m)=>s+Number(m.result?.pendingAmount||0),0) };
+  const calls = filteredReportCalls();
+  return { totalMeetings: list.length, completedMeetings: list.filter(m => m.status === 'completed').length, saleDoneMeetings: sale.length, followUps: list.filter(m => m.status === 'follow-up').length, calls: calls.length, revenue: sale.reduce((s,m)=>s+Number(m.result?.totalAmount||0),0), pendingPayments: sale.reduce((s,m)=>s+Number(m.result?.pendingAmount||0),0) };
 }
 function salesTotalsFor(list, user, key) {
   const owned = list.filter(m => m[key] === user.id);
@@ -478,18 +500,19 @@ function reportTeamSummary(list) {
   if (state.user.role !== 'admin') return '';
   const renderRows = (users, key) => users.map(u => {
     const t = salesTotalsFor(list, u, key);
-    return `<div class="desktop-table-row"><span><b>${u.name}</b><small>${u.role}</small></span><span>${t.meetings}</span><span>${t.sales}</span><span>Rs ${rupee(t.revenue)}</span><span>Rs ${rupee(t.pending)}</span></div>`;
+    const calls = key === 'telecallerId' ? filteredReportCalls().filter(c => c.userId === u.id).length : 0;
+    return `<div class="desktop-table-row"><span><b>${u.name}</b><small>${u.role}</small></span><span>${calls}</span><span>${t.meetings}</span><span>${t.sales}</span><span>Rs ${rupee(t.revenue)}</span><span>Rs ${rupee(t.pending)}</span></div>`;
   }).join('');
   const tele = state.users.filter(u => u.role === 'telecaller');
   const sales = state.users.filter(u => u.role === 'salesman');
-  return `<section class="desktop-panel"><div class="desktop-panel-head"><h2>Team Sale Summary</h2><p class="subtitle">Selected month/date/filter ke hisab se totals</p></div><div class="desktop-two"><div><div class="section-title">Telecaller Wise</div><div class="desktop-table"><div class="desktop-table-head"><span>Name</span><span>Meetings</span><span>Sales</span><span>Revenue</span><span>Pending</span></div>${renderRows(tele, 'telecallerId') || '<p class="subtitle">No telecallers found.</p>'}</div></div><div><div class="section-title">Salesman Wise</div><div class="desktop-table"><div class="desktop-table-head"><span>Name</span><span>Meetings</span><span>Sales</span><span>Revenue</span><span>Pending</span></div>${renderRows(sales, 'salesmanId') || '<p class="subtitle">No salesmen found.</p>'}</div></div></div></section>`;
+  return `<section class="desktop-panel"><div class="desktop-panel-head"><h2>Team Sale Summary</h2><p class="subtitle">Selected month/date/filter ke hisab se totals</p></div><div class="desktop-two"><div><div class="section-title">Telecaller Wise</div><div class="desktop-table team-table"><div class="desktop-table-head"><span>Name</span><span>Calls</span><span>Meetings</span><span>Sales</span><span>Revenue</span><span>Pending</span></div>${renderRows(tele, 'telecallerId') || '<p class="subtitle">No telecallers found.</p>'}</div></div><div><div class="section-title">Salesman Wise</div><div class="desktop-table team-table"><div class="desktop-table-head"><span>Name</span><span>Calls</span><span>Meetings</span><span>Sales</span><span>Revenue</span><span>Pending</span></div>${renderRows(sales, 'salesmanId') || '<p class="subtitle">No salesmen found.</p>'}</div></div></div></section>`;
 }
 function liveLocationPanel(source = state.users.filter(u => u.role === 'salesman')) {
   const salesmen = source.filter(u => u.role === 'salesman');
   return `<section class="desktop-panel"><div class="desktop-panel-head"><h2>Salesman Live Location</h2><p class="subtitle">Admin Dashboard aur Settings me dikhegi</p></div><div class="map">${salesmen.map((s,i)=>`<div class="pin" style="--x:${25+i*18}%;--y:${35+i*9}%"><div class="avatar">${s.avatar}</div></div>`).join('')}</div><div class="list">${salesmen.map(s => `<div class="row-card"><div class="avatar">${s.avatar}</div><div><b>${s.name}</b><p class="subtitle">${s.currentLocation?.label || 'Location not checked-in yet'}<br>Last update: ${s.currentLocation?.updatedAt ? fmtDate(s.currentLocation.updatedAt) + ' ' + fmtTime(s.currentLocation.updatedAt) : '-'}</p></div><a class="btn small green" target="_blank" href="${mapUrl(s.currentLocation ? `${s.currentLocation.lat},${s.currentLocation.lng}` : s.name)}">Navigate</a></div>`).join('') || '<p class="subtitle">No salesman location found.</p>'}</div></section>`;
 }
 function reportFilters() { const tele = state.users.filter(u=>u.role==='telecaller'); const sales = state.users.filter(u=>u.role==='salesman'); return `<div class="field"><label>From Date</label><input class="input" type="date" value="${state.report.from}" onchange="setReportFilter('from', this.value)"></div><div class="field"><label>To Date</label><input class="input" type="date" value="${state.report.to}" onchange="setReportFilter('to', this.value)"></div><div class="field"><label>Telecaller</label><select class="select" onchange="setReportFilter('telecallerId', this.value)"><option value="">All Telecallers</option>${tele.map(u=>`<option value="${u.id}" ${state.report.telecallerId===u.id?'selected':''}>${u.name}</option>`).join('')}</select></div><div class="field"><label>Salesman</label><select class="select" onchange="setReportFilter('salesmanId', this.value)"><option value="">All Salesmen</option>${sales.map(u=>`<option value="${u.id}" ${state.report.salesmanId===u.id?'selected':''}>${u.name}</option>`).join('')}</select></div><div class="field"><label>Status</label><select class="select" onchange="setReportFilter('status', this.value)"><option value="">All Status</option>${Object.entries(statusLabels).map(([k,v])=>`<option value="${k}" ${state.report.status===k?'selected':''}>${v}</option>`).join('')}</select></div><div class="field"><label>Service</label><select class="select" onchange="setReportFilter('service', this.value)"><option value="">All Services</option>${services.map(s=>`<option value="${s}" ${state.report.service===s?'selected':''}>${s}</option>`).join('')}</select></div>`; }
-function reportStats(m) { return `<div class="stats">${stat('Total Meetings', m.totalMeetings)}${stat('Completed', m.completedMeetings, 'green')}${stat('Sale Done', m.saleDoneMeetings, 'purple')}${stat('Follow-ups', m.followUps, 'yellow')}${stat('Revenue (Rs)', rupee(m.revenue))}${stat('Pending Payments', rupee(m.pendingPayments), 'red')}</div>`; }
+function reportStats(m) { return `<div class="stats">${stat('Total Meetings', m.totalMeetings)}${stat('Calls', m.calls || 0)}${stat('Completed', m.completedMeetings, 'green')}${stat('Sale Done', m.saleDoneMeetings, 'purple')}${stat('Follow-ups', m.followUps, 'yellow')}${stat('Revenue (Rs)', rupee(m.revenue))}${stat('Pending Payments', rupee(m.pendingPayments), 'red')}</div>`; }
 function renderReports() { const list = filteredReportMeetings(); const m = reportMetricsFor(list); app.innerHTML = `<div class="shell">${phone(`${header('Reports')}<div class="screen">${reportFilters()}${reportStats(m)}${reportTeamSummary(list)}<button class="btn" onclick="downloadReport()">Download Report</button>${meetingList('Filtered Timeline', list)}</div>`)}</div>`; }
 function downloadReport() {
   const rows = [['Customer','Service','Date','Salesman','Telecaller','Status','Amount'], ...filteredReportMeetings().map(m=>[m.customerName,m.interestedService,fmtDate(m.meetingAt),m.salesmanName,m.telecallerName,m.status,m.result?.totalAmount||0])];
@@ -515,6 +538,7 @@ Object.assign(window, {
   saveMeeting,
   shiftBookingDate,
   openMeeting,
+  logCall,
   updateModal,
   resultFields,
   saveResult,

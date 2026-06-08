@@ -462,6 +462,10 @@ textarea { resize: vertical; min-height: 82px; }
     gap: 12px;
     align-items: center;
   }
+  .team-table .desktop-table-head,
+  .team-table .desktop-table-row {
+    grid-template-columns: 1.4fr 64px 84px 64px 110px 110px;
+  }
   .desktop-table-head {
     color: var(--muted);
     font-size: 12px;

@@ -71,6 +71,7 @@ function seed() {
   return {
     users: [admin, telecaller, telecaller2, salesman, salesman2, salesman3],
     meetings,
+    callLogs: [],
     notifications: [
       { id: id('ntf'), userId: salesman.id, title: 'New meeting assigned', body: 'Amit Enterprises at 10:00 AM', read: false, createdAt: now() },
       { id: id('ntf'), userId: admin.id, title: 'Sale done alert', body: 'Orbit Classes closed for Rs. 25,000', read: false, createdAt: now() }
@@ -93,7 +94,9 @@ function ensureDb() {
 
 function load() {
   ensureDb();
-  return JSON.parse(fs.readFileSync(dbFile, 'utf8'));
+  const db = JSON.parse(fs.readFileSync(dbFile, 'utf8'));
+  db.callLogs ||= [];
+  return db;
 }
 
 function save(db) {
