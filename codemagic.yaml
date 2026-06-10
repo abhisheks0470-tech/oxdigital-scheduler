@@ -28,7 +28,7 @@ workflows:
           echo "flutter.sdk=$FLUTTER_SDK" > android/local.properties
           echo "flutter.versionName=1.0.0" >> android/local.properties
           echo "flutter.versionCode=1" >> android/local.properties
-          perl -0pi -e 's/id "com\.android\.application" version "[^"]*"/id "com.android.application" version "8.6.0"/g' android/settings.gradle
+          perl -0pi -e 's/id "com\.android\.application" version "[^"]*"/id "com.android.application" version "8.9.1"/g' android/settings.gradle
           perl -0pi -e 's/\n\s*id "org\.jetbrains\.kotlin\.android" version "[^"]*" apply false//g' android/settings.gradle
           perl -0pi -e 's/\n\s*id "kotlin-android"//g' android/app/build.gradle
           perl -0pi -e 's/\n\s*kotlinOptions\s*\{[^{}]*\}//g' android/app/build.gradle
@@ -41,7 +41,7 @@ workflows:
           echo "----- checking for unsupported files/versions -----"
           if find android -name '*.kts' | grep .; then echo "KTS Gradle files must not exist"; exit 1; fi
           if find android/app/src/main/kotlin -type f 2>/dev/null | grep .; then echo "Kotlin source files must not exist"; exit 1; fi
-          if grep -R "8.3.2" android; then echo "Old AGP 8.3.2 still exists"; exit 1; fi
+          if grep -R "8.3.2\|8.6.0" android; then echo "Old Android Gradle Plugin version still exists"; exit 1; fi
           flutter clean
       - name: Get packages
         script: flutter pub get
@@ -94,7 +94,7 @@ workflows:
           echo "flutter.sdk=$FLUTTER_SDK" > android/local.properties
           echo "flutter.versionName=1.0.0" >> android/local.properties
           echo "flutter.versionCode=1" >> android/local.properties
-          perl -0pi -e 's/id "com\.android\.application" version "[^"]*"/id "com.android.application" version "8.6.0"/g' android/settings.gradle
+          perl -0pi -e 's/id "com\.android\.application" version "[^"]*"/id "com.android.application" version "8.9.1"/g' android/settings.gradle
           perl -0pi -e 's/\n\s*id "org\.jetbrains\.kotlin\.android" version "[^"]*" apply false//g' android/settings.gradle
           perl -0pi -e 's/\n\s*id "kotlin-android"//g' android/app/build.gradle
           perl -0pi -e 's/\n\s*kotlinOptions\s*\{[^{}]*\}//g' android/app/build.gradle
@@ -107,7 +107,7 @@ workflows:
           echo "----- checking for unsupported files/versions -----"
           if find android -name '*.kts' | grep .; then echo "KTS Gradle files must not exist"; exit 1; fi
           if find android/app/src/main/kotlin -type f 2>/dev/null | grep .; then echo "Kotlin source files must not exist"; exit 1; fi
-          if grep -R "8.3.2" android; then echo "Old AGP 8.3.2 still exists"; exit 1; fi
+          if grep -R "8.3.2\|8.6.0" android; then echo "Old Android Gradle Plugin version still exists"; exit 1; fi
           flutter clean
       - name: Get packages
         script: flutter pub get
@@ -155,7 +155,7 @@ workflows:
           echo "flutter.sdk=$FLUTTER_SDK" > android/local.properties
           echo "flutter.versionName=1.0.0" >> android/local.properties
           echo "flutter.versionCode=1" >> android/local.properties
-          perl -0pi -e 's/id "com\.android\.application" version "[^"]*"/id "com.android.application" version "8.6.0"/g' android/settings.gradle
+          perl -0pi -e 's/id "com\.android\.application" version "[^"]*"/id "com.android.application" version "8.9.1"/g' android/settings.gradle
           perl -0pi -e 's/\n\s*id "org\.jetbrains\.kotlin\.android" version "[^"]*" apply false//g' android/settings.gradle
           perl -0pi -e 's/\n\s*id "kotlin-android"//g' android/app/build.gradle
           perl -0pi -e 's/\n\s*kotlinOptions\s*\{[^{}]*\}//g' android/app/build.gradle
@@ -168,7 +168,7 @@ workflows:
           echo "----- checking for unsupported files/versions -----"
           if find android -name '*.kts' | grep .; then echo "KTS Gradle files must not exist"; exit 1; fi
           if find android/app/src/main/kotlin -type f 2>/dev/null | grep .; then echo "Kotlin source files must not exist"; exit 1; fi
-          if grep -R "8.3.2" android; then echo "Old AGP 8.3.2 still exists"; exit 1; fi
+          if grep -R "8.3.2\|8.6.0" android; then echo "Old Android Gradle Plugin version still exists"; exit 1; fi
           flutter clean
       - name: Get packages
         script: flutter pub get
